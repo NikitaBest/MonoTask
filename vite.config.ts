@@ -36,6 +36,7 @@ export default defineConfig({
       plugins: [],
     },
   },
+  base: "/",
   root: path.resolve(import.meta.dirname, "client"),
   build: {
     outDir: path.resolve(import.meta.dirname, "dist"),
@@ -45,37 +46,20 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
+        // Упрощенное разделение для стабильности
         manualChunks: (id) => {
-          // React и React DOM - всегда отдельно
+          // React и React DOM вместе
           if (id.includes("node_modules/react") || id.includes("node_modules/react-dom")) {
             return "vendor-react";
           }
-          // React Router
-          if (id.includes("node_modules/wouter")) {
-            return "vendor-router";
-          }
-          // Radix UI компоненты
-          if (id.includes("node_modules/@radix-ui")) {
-            return "vendor-ui";
-          }
-          // State management
-          if (id.includes("node_modules/zustand") || id.includes("node_modules/@tanstack/react-query")) {
-            return "vendor-state";
-          }
-          // Date utilities
-          if (id.includes("node_modules/date-fns")) {
-            return "vendor-date";
-          }
-          // Forms
-          if (id.includes("node_modules/react-hook-form") || id.includes("node_modules/zod")) {
-            return "vendor-forms";
-          }
-          // Recharts оставляем в основном бандле, чтобы избежать проблем с инициализацией
-          // Остальные node_modules
+          // Все остальные зависимости в один чанк
           if (id.includes("node_modules")) {
-            return "vendor-other";
+            return "vendor";
           }
         },
+        // Убеждаемся, что React загружается первым
+        entryFileNames: "assets/[name].js",
+        chunkFileNames: "assets/[name]-[hash].js",
       },
     },
   },
