@@ -1,0 +1,12 @@
+# Игнорируем файлы сервера и разработки
+server/
+script/
+shared/
+node_modules/
+.idea/
+attached_assets/
+*.log
+.env
+.env.local
+dist/
+

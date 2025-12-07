@@ -8,7 +8,8 @@ import { metaImagesPlugin } from "./vite-plugin-meta-images";
 export default defineConfig({
   plugins: [
     react(),
-    runtimeErrorOverlay(),
+    // Runtime error overlay только в development
+    ...(process.env.NODE_ENV !== "production" ? [runtimeErrorOverlay()] : []),
     tailwindcss(),
     metaImagesPlugin(),
     ...(process.env.NODE_ENV !== "production" &&
@@ -37,8 +38,45 @@ export default defineConfig({
   },
   root: path.resolve(import.meta.dirname, "client"),
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    outDir: path.resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
+    sourcemap: false,
+    minify: "esbuild",
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          // React и React DOM
+          if (id.includes("react") || id.includes("react-dom")) {
+            return "vendor-react";
+          }
+          // React Router
+          if (id.includes("wouter")) {
+            return "vendor-router";
+          }
+          // Radix UI компоненты
+          if (id.includes("@radix-ui")) {
+            return "vendor-ui";
+          }
+          // State management
+          if (id.includes("zustand") || id.includes("@tanstack/react-query")) {
+            return "vendor-state";
+          }
+          // Charts
+          if (id.includes("recharts")) {
+            return "vendor-charts";
+          }
+          // Date utilities
+          if (id.includes("date-fns")) {
+            return "vendor-date";
+          }
+          // Forms
+          if (id.includes("react-hook-form") || id.includes("zod")) {
+            return "vendor-forms";
+          }
+        },
+      },
+    },
   },
   server: {
     host: "0.0.0.0",
