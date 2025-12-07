@@ -46,33 +46,34 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // React и React DOM
-          if (id.includes("react") || id.includes("react-dom")) {
+          // React и React DOM - всегда отдельно
+          if (id.includes("node_modules/react") || id.includes("node_modules/react-dom")) {
             return "vendor-react";
           }
           // React Router
-          if (id.includes("wouter")) {
+          if (id.includes("node_modules/wouter")) {
             return "vendor-router";
           }
           // Radix UI компоненты
-          if (id.includes("@radix-ui")) {
+          if (id.includes("node_modules/@radix-ui")) {
             return "vendor-ui";
           }
           // State management
-          if (id.includes("zustand") || id.includes("@tanstack/react-query")) {
+          if (id.includes("node_modules/zustand") || id.includes("node_modules/@tanstack/react-query")) {
             return "vendor-state";
           }
-          // Charts
-          if (id.includes("recharts")) {
-            return "vendor-charts";
-          }
           // Date utilities
-          if (id.includes("date-fns")) {
+          if (id.includes("node_modules/date-fns")) {
             return "vendor-date";
           }
           // Forms
-          if (id.includes("react-hook-form") || id.includes("zod")) {
+          if (id.includes("node_modules/react-hook-form") || id.includes("node_modules/zod")) {
             return "vendor-forms";
+          }
+          // Recharts оставляем в основном бандле, чтобы избежать проблем с инициализацией
+          // Остальные node_modules
+          if (id.includes("node_modules")) {
+            return "vendor-other";
           }
         },
       },
