@@ -18,9 +18,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside className="w-16 md:w-64 border-r border-border bg-sidebar flex flex-col items-center md:items-stretch py-6 transition-all duration-300">
         <div className="px-4 mb-8 flex items-center justify-center md:justify-start gap-3">
-          <div className="h-8 w-8 bg-primary text-primary-foreground rounded-lg flex items-center justify-center font-bold font-mono">
-            M
-          </div>
+          <img src="/Logo.svg" alt="MonoTask" className="h-8 w-8" />
           <span className="text-xl font-bold tracking-tight hidden md:block">MonoTask</span>
         </div>
 
