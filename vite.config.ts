@@ -43,23 +43,12 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: false,
     minify: "esbuild",
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 2000,
     rollupOptions: {
       output: {
-        // Упрощенное разделение для стабильности
-        manualChunks: (id) => {
-          // React и React DOM вместе
-          if (id.includes("node_modules/react") || id.includes("node_modules/react-dom")) {
-            return "vendor-react";
-          }
-          // Все остальные зависимости в один чанк
-          if (id.includes("node_modules")) {
-            return "vendor";
-          }
-        },
-        // Убеждаемся, что React загружается первым
-        entryFileNames: "assets/[name].js",
-        chunkFileNames: "assets/[name]-[hash].js",
+        // Отключаем разделение на чанки для максимальной стабильности
+        // Все будет в одном файле, что гарантирует правильный порядок загрузки
+        manualChunks: undefined,
       },
     },
   },
