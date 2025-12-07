@@ -33,6 +33,12 @@ const priorityColors: Record<string, string> = {
   high: "bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400",
 };
 
+const priorityLabels: Record<string, string> = {
+  low: "Низкий",
+  medium: "Средний",
+  high: "Высокий",
+};
+
 export function TaskCard({ task, compact = false }: TaskCardProps) {
   const updateTask = useStore((state) => state.updateTask);
   const deleteTask = useStore((state) => state.deleteTask);
@@ -94,25 +100,25 @@ export function TaskCard({ task, compact = false }: TaskCardProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Status</DropdownMenuLabel>
+              <DropdownMenuLabel>Статус</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => handleStatusChange("planned")}>
-                <Clock className="mr-2 h-4 w-4" /> Planned
+                <Clock className="mr-2 h-4 w-4" /> Запланировано
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleStatusChange("in-progress")}>
-                <PlayCircle className="mr-2 h-4 w-4" /> In Progress
+                <PlayCircle className="mr-2 h-4 w-4" /> В работе
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleStatusChange("completed")}>
-                <Check className="mr-2 h-4 w-4" /> Completed
+                <Check className="mr-2 h-4 w-4" /> Выполнено
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleStatusChange("cancelled")}>
-                <X className="mr-2 h-4 w-4" /> Cancelled
+                <X className="mr-2 h-4 w-4" /> Отменено
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setIsEditOpen(true)}>
-                <Edit2 className="mr-2 h-4 w-4" /> Edit
+                <Edit2 className="mr-2 h-4 w-4" /> Изменить
               </DropdownMenuItem>
               <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => deleteTask(task.id)}>
-                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                <Trash2 className="mr-2 h-4 w-4" /> Удалить
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -120,7 +126,7 @@ export function TaskCard({ task, compact = false }: TaskCardProps) {
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
            <Badge variant="outline" className={cn("uppercase tracking-wider font-bold border-0 px-2 py-0.5 rounded-full", priorityColors[task.priority])}>
-             {task.priority}
+             {priorityLabels[task.priority]}
            </Badge>
 
            {(task.startTime || task.endTime) && (

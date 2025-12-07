@@ -18,6 +18,7 @@ import {
   setHours,
   isToday
 } from "date-fns";
+import { ru } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useStore, Task } from "@/lib/store";
@@ -70,7 +71,7 @@ export function CalendarView() {
               onClick={() => setViewMode("day")}
               className={cn("h-8 rounded-md px-3", viewMode === "day" && "bg-background shadow-sm")}
             >
-              Day
+              День
             </Button>
             <Button 
               variant="ghost" 
@@ -78,7 +79,7 @@ export function CalendarView() {
               onClick={() => setViewMode("week")}
               className={cn("h-8 rounded-md px-3", viewMode === "week" && "bg-background shadow-sm")}
             >
-              Week
+              Неделя
             </Button>
             <Button 
               variant="ghost" 
@@ -86,7 +87,7 @@ export function CalendarView() {
               onClick={() => setViewMode("month")}
               className={cn("h-8 rounded-md px-3", viewMode === "month" && "bg-background shadow-sm")}
             >
-              Month
+              Месяц
             </Button>
          </div>
       </div>
@@ -96,18 +97,18 @@ export function CalendarView() {
           <Button variant="outline" size="icon" onClick={handlePrev} className="h-8 w-8 rounded-full">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="w-32 text-center font-semibold text-lg">
-            {viewMode === "day" && format(currentDate, "MMM d")}
-            {viewMode === "week" && `W${format(currentDate, "w")}, ${format(currentDate, "MMM")}`}
-            {viewMode === "month" && format(currentDate, "MMMM yyyy")}
+          <div className="w-32 text-center font-semibold text-lg capitalize">
+            {viewMode === "day" && format(currentDate, "MMM d", { locale: ru })}
+            {viewMode === "week" && `Нед ${format(currentDate, "w")}, ${format(currentDate, "MMM", { locale: ru })}`}
+            {viewMode === "month" && format(currentDate, "MMMM yyyy", { locale: ru })}
           </div>
           <Button variant="outline" size="icon" onClick={handleNext} className="h-8 w-8 rounded-full">
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <Button variant="outline" size="sm" onClick={handleToday} className="hidden sm:flex">Today</Button>
+        <Button variant="outline" size="sm" onClick={handleToday} className="hidden sm:flex">Сегодня</Button>
         <Button size="sm" onClick={() => { setSelectedSlot({ date: currentDate }); setIsFormOpen(true); }}>
-          <Plus className="mr-2 h-4 w-4" /> Add Task
+          <Plus className="mr-2 h-4 w-4" /> Задача
         </Button>
       </div>
     </div>
@@ -167,11 +168,11 @@ export function CalendarView() {
             <div 
               key={day.toString()} 
               className={cn(
-                "flex-1 text-center py-2 text-sm font-medium border-l truncate",
+                "flex-1 text-center py-2 text-sm font-medium border-l truncate capitalize",
                 isToday(day) && "bg-secondary text-primary"
               )}
             >
-              <div>{format(day, "EEE")}</div>
+              <div>{format(day, "EEE", { locale: ru })}</div>
               <div className={cn("text-lg", isToday(day) && "font-bold")}>{format(day, "d")}</div>
             </div>
           ))}
@@ -220,11 +221,15 @@ export function CalendarView() {
     const endDate = endOfWeek(end, { weekStartsOn: weekStartsOn as 0 | 1 });
     const days = eachDayOfInterval({ start: startDate, end: endDate });
 
+    const weekDays = weekStartsOn === 1 
+      ? ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+      : ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+
     return (
       <div className="h-full flex flex-col">
         {/* Week Headers */}
         <div className="grid grid-cols-7 border-b">
-          {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d, i) => (
+          {weekDays.map((d, i) => (
              <div key={i} className="py-2 text-center text-sm font-medium text-muted-foreground">{d}</div>
           ))}
         </div>
@@ -259,7 +264,7 @@ export function CalendarView() {
                    ))}
                    {dayTasks.length > 3 && (
                      <div className="text-xs text-muted-foreground text-center pt-1">
-                       + {dayTasks.length - 3} more
+                       + ещё {dayTasks.length - 3}
                      </div>
                    )}
                  </div>

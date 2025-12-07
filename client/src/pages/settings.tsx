@@ -13,10 +13,9 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Theme handling logic (basic implementation)
+  // Theme handling logic
   const handleThemeChange = (theme: 'light' | 'dark' | 'system') => {
     updateSettings({ theme });
-    // In a real app, you'd apply the class to html element here or in a useEffect at root
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
     if (theme === "system") {
@@ -38,7 +37,7 @@ export default function SettingsPage() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast({ title: "Export Successful", description: "Your data has been downloaded." });
+    toast({ title: "Экспорт завершен", description: "Ваши данные были успешно скачаны." });
   };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,34 +49,32 @@ export default function SettingsPage() {
       try {
         const data = JSON.parse(event.target?.result as string);
         if (data.tasks && Array.isArray(data.tasks)) {
-           // Basic validation passed
            useStore.setState({ tasks: data.tasks, settings: { ...settings, ...data.settings } });
-           toast({ title: "Import Successful", description: "Your data has been restored." });
+           toast({ title: "Импорт завершен", description: "Данные успешно восстановлены." });
         } else {
            throw new Error("Invalid format");
         }
       } catch (err) {
-        toast({ title: "Import Failed", description: "The file format is invalid.", variant: "destructive" });
+        toast({ title: "Ошибка импорта", description: "Неверный формат файла.", variant: "destructive" });
       }
     };
     reader.readAsText(file);
-    // Reset input
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
     <div className="p-4 md:p-6 max-w-2xl mx-auto w-full space-y-8">
-      <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+      <h1 className="text-3xl font-bold tracking-tight">Настройки</h1>
 
       <div className="space-y-6">
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold">Appearance</h2>
+          <h2 className="text-xl font-semibold">Внешний вид</h2>
           <Separator />
           
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Theme</Label>
-              <p className="text-sm text-muted-foreground">Select your preferred interface theme.</p>
+              <Label>Тема оформления</Label>
+              <p className="text-sm text-muted-foreground">Выберите тему интерфейса.</p>
             </div>
             <div className="flex bg-secondary p-1 rounded-lg">
                <Button 
@@ -109,53 +106,53 @@ export default function SettingsPage() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold">Preferences</h2>
+          <h2 className="text-xl font-semibold">Предпочтения</h2>
           <Separator />
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Default View</Label>
-              <p className="text-sm text-muted-foreground">The view that opens when you start the app.</p>
+              <Label>Вид по умолчанию</Label>
+              <p className="text-sm text-muted-foreground">Экран, который открывается при запуске.</p>
             </div>
             <Select 
               value={settings.defaultView} 
               onValueChange={(v) => updateSettings({ defaultView: v as any })}
             >
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select view" />
+                <SelectValue placeholder="Выберите вид" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="day">Day View</SelectItem>
-                <SelectItem value="week">Week View</SelectItem>
-                <SelectItem value="month">Month View</SelectItem>
-                <SelectItem value="list">List View</SelectItem>
+                <SelectItem value="day">День</SelectItem>
+                <SelectItem value="week">Неделя</SelectItem>
+                <SelectItem value="month">Месяц</SelectItem>
+                <SelectItem value="list">Список</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Start of Week</Label>
-              <p className="text-sm text-muted-foreground">Choose which day the week starts on.</p>
+              <Label>Начало недели</Label>
+              <p className="text-sm text-muted-foreground">День, с которого начинается неделя.</p>
             </div>
             <Select 
               value={settings.startOfWeek} 
               onValueChange={(v) => updateSettings({ startOfWeek: v as any })}
             >
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select day" />
+                <SelectValue placeholder="Выберите день" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="monday">Monday</SelectItem>
-                <SelectItem value="sunday">Sunday</SelectItem>
+                <SelectItem value="monday">Понедельник</SelectItem>
+                <SelectItem value="sunday">Воскресенье</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="flex items-center justify-between">
              <div className="space-y-0.5">
-               <Label>Notifications</Label>
-               <p className="text-sm text-muted-foreground">Receive browser notifications for upcoming tasks.</p>
+               <Label>Уведомления</Label>
+               <p className="text-sm text-muted-foreground">Получать браузерные уведомления о задачах.</p>
              </div>
              <Switch 
                checked={settings.notificationsEnabled}
@@ -165,19 +162,19 @@ export default function SettingsPage() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold">Data Management</h2>
+          <h2 className="text-xl font-semibold">Управление данными</h2>
           <Separator />
           
           <div className="flex flex-col gap-4">
             <p className="text-sm text-muted-foreground">
-              All your data is stored locally in your browser. You can export it to a JSON file for backup or transfer.
+              Все данные хранятся локально в вашем браузере. Вы можете экспортировать их в файл для резервного копирования.
             </p>
             <div className="flex gap-4">
               <Button variant="outline" onClick={handleExport}>
-                <Download className="mr-2 h-4 w-4" /> Export Data
+                <Download className="mr-2 h-4 w-4" /> Экспорт
               </Button>
               <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-                <Upload className="mr-2 h-4 w-4" /> Import Data
+                <Upload className="mr-2 h-4 w-4" /> Импорт
               </Button>
               <input 
                 type="file" 

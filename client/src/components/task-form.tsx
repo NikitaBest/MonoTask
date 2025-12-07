@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
+import { ru } from "date-fns/locale";
 import { Calendar as CalendarIcon, Clock, Tag, Flag } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -15,13 +16,13 @@ import { useStore, Task, Priority, TaskStatus } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 const taskSchema = z.object({
-  title: z.string().min(1, "Title is required"),
+  title: z.string().min(1, "Название обязательно"),
   date: z.date(),
   startTime: z.string().optional(),
   endTime: z.string().optional(),
   description: z.string().optional(),
   priority: z.enum(["low", "medium", "high"] as const),
-  tags: z.string().optional(), // Comma separated for simplicity in form
+  tags: z.string().optional(),
 });
 
 interface TaskFormProps {
@@ -83,13 +84,13 @@ export function TaskForm({ open, onOpenChange, initialDate, initialTime, taskToE
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] gap-6">
         <DialogHeader>
-          <DialogTitle>{taskToEdit ? "Edit Task" : "New Task"}</DialogTitle>
+          <DialogTitle>{taskToEdit ? "Редактировать задачу" : "Новая задача"}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Input 
-              placeholder="What needs to be done?" 
+              placeholder="Что нужно сделать?" 
               {...form.register("title")} 
               className="text-lg font-medium border-0 px-0 focus-visible:ring-0 shadow-none border-b border-input rounded-none"
               autoFocus
@@ -102,7 +103,7 @@ export function TaskForm({ open, onOpenChange, initialDate, initialTime, taskToE
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <CalendarIcon className="w-4 h-4" /> Date
+                <CalendarIcon className="w-4 h-4" /> Дата
               </label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -113,7 +114,7 @@ export function TaskForm({ open, onOpenChange, initialDate, initialTime, taskToE
                       !form.watch("date") && "text-muted-foreground"
                     )}
                   >
-                    {form.watch("date") ? format(form.watch("date"), "PPP") : <span>Pick a date</span>}
+                    {form.watch("date") ? format(form.watch("date"), "PPP", { locale: ru }) : <span>Выберите дату</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -122,6 +123,7 @@ export function TaskForm({ open, onOpenChange, initialDate, initialTime, taskToE
                     selected={form.watch("date")}
                     onSelect={(date) => date && form.setValue("date", date)}
                     initialFocus
+                    locale={ru}
                   />
                 </PopoverContent>
               </Popover>
@@ -129,19 +131,19 @@ export function TaskForm({ open, onOpenChange, initialDate, initialTime, taskToE
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                 <Flag className="w-4 h-4" /> Priority
+                 <Flag className="w-4 h-4" /> Приоритет
               </label>
               <Select 
                 onValueChange={(val) => form.setValue("priority", val as Priority)}
                 defaultValue={form.watch("priority")}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select priority" />
+                  <SelectValue placeholder="Выберите приоритет" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="low">Низкий</SelectItem>
+                  <SelectItem value="medium">Средний</SelectItem>
+                  <SelectItem value="high">Высокий</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -150,13 +152,13 @@ export function TaskForm({ open, onOpenChange, initialDate, initialTime, taskToE
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Clock className="w-4 h-4" /> Start Time
+                <Clock className="w-4 h-4" /> Начало
               </label>
               <Input type="time" {...form.register("startTime")} />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Clock className="w-4 h-4" /> End Time
+                <Clock className="w-4 h-4" /> Окончание
               </label>
               <Input type="time" {...form.register("endTime")} />
             </div>
@@ -164,22 +166,22 @@ export function TaskForm({ open, onOpenChange, initialDate, initialTime, taskToE
           
           <div className="space-y-2">
              <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Tag className="w-4 h-4" /> Tags (comma separated)
+                <Tag className="w-4 h-4" /> Теги (через запятую)
               </label>
-             <Input placeholder="work, design, meeting" {...form.register("tags")} />
+             <Input placeholder="работа, проект, встреча" {...form.register("tags")} />
           </div>
 
           <div className="space-y-2">
             <Textarea 
-              placeholder="Add details, notes, or subtasks..." 
+              placeholder="Добавьте детали, заметки или подзадачи..." 
               {...form.register("description")} 
               className="resize-none min-h-[100px]"
             />
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit">{taskToEdit ? "Save Changes" : "Create Task"}</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Отмена</Button>
+            <Button type="submit">{taskToEdit ? "Сохранить" : "Создать задачу"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

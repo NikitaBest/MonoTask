@@ -6,10 +6,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
 
   const navItems = [
-    { icon: Calendar, label: "Calendar", href: "/" },
-    { icon: List, label: "List", href: "/list" },
-    { icon: PieChart, label: "Statistics", href: "/stats" },
-    { icon: Settings, label: "Settings", href: "/settings" },
+    { icon: Calendar, label: "Календарь", href: "/" },
+    { icon: List, label: "Список", href: "/list" },
+    { icon: PieChart, label: "Статистика", href: "/stats" },
+    { icon: Settings, label: "Настройки", href: "/settings" },
   ];
 
   return (
