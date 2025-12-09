@@ -114,7 +114,7 @@ export function KanbanBoard({ projectId, onAddTask }: KanbanBoardProps) {
 
   return (
     <div className="h-full flex flex-col w-full">
-      <div className="flex-1 overflow-x-auto overflow-y-hidden px-4 py-4">
+      <div className="flex-1 overflow-x-auto overflow-y-hidden px-4 py-4 scrollbar-hide">
         <div className="flex gap-4 min-w-max h-full">
           {columns.map((column) => {
             const columnTasks = tasksByStatus[column.id] || [];
@@ -143,7 +143,7 @@ export function KanbanBoard({ projectId, onAddTask }: KanbanBoardProps) {
 
                 {/* Список задач */}
                 <div 
-                  className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0"
+                  className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0 scrollbar-hide"
                   onDragOver={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
