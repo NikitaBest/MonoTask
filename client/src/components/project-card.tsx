@@ -110,7 +110,7 @@ export function ProjectCard({ project, onEdit }: ProjectCardProps) {
           </div>
           <div className="w-full bg-secondary rounded-full h-2">
             <div 
-              className="bg-primary h-2 rounded-full transition-all"
+              className="bg-green-500 h-2 rounded-full transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>
