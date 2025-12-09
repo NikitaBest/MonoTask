@@ -1,5 +1,5 @@
-import { ListView } from "@/components/list-view";
+import { NotesView } from "@/components/notes-view";
 
 export default function ListPage() {
-  return <ListView />;
+  return <NotesView />;
 }

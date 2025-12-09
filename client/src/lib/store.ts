@@ -60,10 +60,20 @@ export interface CalendarEvent {
   createdAt: number;
 }
 
+export interface Note {
+  id: string;
+  title: string;
+  content: string; // Содержимое в формате Markdown
+  tags: string[]; // Теги для категоризации
+  createdAt: number;
+  updatedAt: number;
+}
+
 interface AppState {
   tasks: Task[];
   projects: Project[];
   events: CalendarEvent[]; // События/напоминания для календаря
+  notes: Note[]; // Заметки
   settings: AppSettings;
   
   // Task Actions
@@ -93,6 +103,13 @@ interface AppState {
   deleteEvent: (id: string) => void;
   getEventsByDate: (date: string) => CalendarEvent[];
   
+  // Notes Actions
+  addNote: (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateNote: (id: string, updates: Partial<Note>) => void;
+  deleteNote: (id: string) => void;
+  getNotesByTag: (tag: string) => Note[];
+  getAllTags: () => string[];
+  
   // Settings
   updateSettings: (settings: Partial<AppSettings>) => void;
 }
@@ -103,6 +120,7 @@ export const useStore = create<AppState>()(
       tasks: [],
       projects: [],
       events: [],
+      notes: [],
       settings: {
         defaultView: 'day',
         theme: 'system',
@@ -293,6 +311,41 @@ export const useStore = create<AppState>()(
 
       getEventsByDate: (date) => {
         return get().events.filter((e) => e.date === date);
+      },
+
+      // Notes Actions
+      addNote: (noteData) => set((state) => {
+        const now = Date.now();
+        return {
+          notes: [...state.notes, {
+            ...noteData,
+            id: crypto.randomUUID(),
+            createdAt: now,
+            updatedAt: now
+          }]
+        };
+      }),
+
+      updateNote: (id, updates) => set((state) => ({
+        notes: state.notes.map((n) =>
+          n.id === id ? { ...n, ...updates, updatedAt: Date.now() } : n
+        )
+      })),
+
+      deleteNote: (id) => set((state) => ({
+        notes: state.notes.filter((n) => n.id !== id)
+      })),
+
+      getNotesByTag: (tag) => {
+        return get().notes.filter((n) => n.tags.includes(tag));
+      },
+
+      getAllTags: () => {
+        const allTags = new Set<string>();
+        get().notes.forEach((n) => {
+          n.tags.forEach((tag) => allTags.add(tag));
+        });
+        return Array.from(allTags).sort();
       },
 
       // Settings

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Calendar, List, PieChart, Settings, FolderKanban } from "lucide-react";
+import { Calendar, FileText, PieChart, Settings, FolderKanban } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -7,7 +7,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   const navItems = [
     { icon: Calendar, label: "Календарь", href: "/" },
-    { icon: List, label: "Список", href: "/list" },
+    { icon: FileText, label: "Заметки", href: "/list" },
     { icon: FolderKanban, label: "Проекты", href: "/projects" },
     { icon: PieChart, label: "Статистика", href: "/stats" },
     { icon: Settings, label: "Настройки", href: "/settings" },
