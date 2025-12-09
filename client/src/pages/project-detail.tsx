@@ -5,7 +5,7 @@ import { TaskForm } from "@/components/task-form";
 import { ProjectNotes } from "@/components/project-notes";
 import { ProjectStats } from "@/components/project-stats";
 import { KanbanBoard } from "@/components/kanban-board";
-import { ArrowLeft, Plus, FolderKanban } from "lucide-react";
+import { ArrowLeft, Plus, FolderKanban, CheckSquare, FileText, PieChart } from "lucide-react";
 import { Link } from "wouter";
 import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -123,21 +123,24 @@ export default function ProjectDetailPage() {
             <TabsList className="inline-flex h-9 items-center justify-center rounded-lg bg-secondary border p-1">
               <TabsTrigger 
                 value="tasks" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-6 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-6 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
               >
-                📋 Задачи
+                <CheckSquare className="h-4 w-4" />
+                Задачи
               </TabsTrigger>
               <TabsTrigger 
                 value="notes" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-6 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-6 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
               >
-                📝 Заметки
+                <FileText className="h-4 w-4" />
+                Заметки
               </TabsTrigger>
               <TabsTrigger 
                 value="stats" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-6 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-6 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
               >
-                📊 Статистика
+                <PieChart className="h-4 w-4" />
+                Статистика
               </TabsTrigger>
             </TabsList>
           </div>
