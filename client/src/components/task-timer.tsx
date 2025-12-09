@@ -121,22 +121,31 @@ export function TaskTimer({ taskId, compact = false }: TaskTimerProps) {
   return (
     <div className="space-y-3">
       {/* Основной блок с таймером и кнопками */}
-      <div className="relative flex items-center gap-2 p-3 rounded-lg border bg-card">
-        {/* Общее время в правом верхнем углу */}
-        {totalTime > 0 && (
-          <div className="absolute top-2 right-2 text-xs text-muted-foreground whitespace-nowrap">
-            Всего: {formatTime(completedSessionsTime + (isRunning ? currentTime : 0))}
+      <div className="flex items-center gap-3 p-3 rounded-lg border bg-card">
+        <div className="flex-1 flex items-center gap-4">
+          {/* Текущее время сессии */}
+          <div className="flex-1">
+            <div className="text-lg font-mono font-semibold">
+              {formatTime(currentSessionTime)}
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5">
+              {isRunning ? "Текущая сессия" : "Время сессии"}
+            </div>
           </div>
-        )}
-        
-        <div className="flex-1 pr-20">
-          <div className="text-lg font-mono font-semibold">
-            {formatTime(currentSessionTime)}
-          </div>
-          <div className="text-xs text-muted-foreground mt-0.5">
-            {isRunning ? "Текущая сессия" : "Время сессии"}
-          </div>
+          
+          {/* Общее время */}
+          {totalTime > 0 && (
+            <div className="flex flex-col items-end border-l pl-4">
+              <div className="text-sm font-mono font-semibold text-muted-foreground">
+                {formatTime(completedSessionsTime + (isRunning ? currentTime : 0))}
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                Всего
+              </div>
+            </div>
+          )}
         </div>
+        
         <div className="flex items-center gap-2">
           {isRunning ? (
             <Button
