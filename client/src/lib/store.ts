@@ -96,6 +96,22 @@ export interface Expense {
   updatedAt: number;
 }
 
+export type ResourceType = 'link' | 'credentials' | 'note' | 'file';
+
+export interface ProjectResource {
+  id: string;
+  projectId: string; // ID проекта
+  type: ResourceType; // Тип ресурса
+  title: string; // Название
+  url?: string; // URL (для ссылок)
+  username?: string; // Логин (для credentials)
+  password?: string; // Пароль (для credentials)
+  content?: string; // Содержимое (для заметок)
+  description?: string; // Описание/комментарий
+  createdAt: number;
+  updatedAt: number;
+}
+
 interface AppState {
   tasks: Task[];
   projects: Project[];
@@ -154,6 +170,12 @@ interface AppState {
   getExpensesByProject: (projectId: string) => Expense[];
   getTotalExpensesForProject: (projectId: string) => number; // Общая сумма расходов
   
+  // Resources Actions
+  addResource: (resource: Omit<ProjectResource, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateResource: (id: string, updates: Partial<ProjectResource>) => void;
+  deleteResource: (id: string) => void;
+  getResourcesByProject: (projectId: string) => ProjectResource[];
+  
   // Settings
   updateSettings: (settings: Partial<AppSettings>) => void;
 }
@@ -167,6 +189,7 @@ export const useStore = create<AppState>()(
       notes: [],
       payments: [],
       expenses: [],
+      resources: [],
       settings: {
         defaultView: 'day',
         theme: 'system',
@@ -467,6 +490,35 @@ export const useStore = create<AppState>()(
         return get().expenses
           .filter((e) => e.projectId === projectId)
           .reduce((sum, e) => sum + e.amount, 0);
+      },
+
+      // Resources Actions
+      addResource: (resourceData) => set((state) => {
+        const now = Date.now();
+        return {
+          resources: [...state.resources, {
+            ...resourceData,
+            id: crypto.randomUUID(),
+            createdAt: now,
+            updatedAt: now
+          }]
+        };
+      }),
+
+      updateResource: (id, updates) => set((state) => ({
+        resources: state.resources.map((r) =>
+          r.id === id ? { ...r, ...updates, updatedAt: Date.now() } : r
+        )
+      })),
+
+      deleteResource: (id) => set((state) => ({
+        resources: state.resources.filter((r) => r.id !== id)
+      })),
+
+      getResourcesByProject: (projectId) => {
+        return get().resources
+          .filter((r) => r.projectId === projectId)
+          .sort((a, b) => b.updatedAt - a.updatedAt);
       },
 
       // Settings
