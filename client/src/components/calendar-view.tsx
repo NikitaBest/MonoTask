@@ -17,12 +17,19 @@ import {
   isToday
 } from "date-fns";
 import { ru } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, Bell, Phone, Users, CheckSquare } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Bell, Phone, Users, CheckSquare, Edit2, Trash2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useStore, Task, CalendarEvent } from "@/lib/store";
+import { useStore, CalendarEvent } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { TaskCard } from "./task-card";
 import { EventForm } from "./event-form";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 
 type ViewMode = "day" | "week" | "month";
@@ -46,9 +53,10 @@ export function CalendarView() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isEventFormOpen, setIsEventFormOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ date: Date; hour?: number; minute?: number } | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | undefined>();
 
-  const tasks = useStore((state) => state.tasks);
   const events = useStore((state) => state.events);
+  const deleteEvent = useStore((state) => state.deleteEvent);
   const settings = useStore((state) => state.settings);
   const updateSettings = useStore((state) => state.updateSettings);
   
@@ -78,27 +86,44 @@ export function CalendarView() {
   const handleToday = () => setCurrentDate(new Date());
 
   const handleSlotClick = (date: Date, hour?: number, minute?: number) => {
+    setSelectedEvent(undefined);
     setSelectedSlot({ date, hour, minute });
     setIsEventFormOpen(true);
   };
 
-  // Получаем задачи и события для даты
+  const handleEventClick = (event: CalendarEvent, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedEvent(event);
+    setSelectedSlot(null);
+    setIsEventFormOpen(true);
+  };
+
+  const handleDeleteEvent = (eventId: string) => {
+    if (confirm("Вы уверены, что хотите удалить это событие?")) {
+      deleteEvent(eventId);
+    }
+  };
+
+  // Получаем события для даты
   const getItemsForDate = (date: Date) => {
     const dateString = format(date, "yyyy-MM-dd");
     
-    // Задачи с зафиксированным временем (startTime и endTime)
-    const dayTasks = tasks.filter(t => {
-      if (!isSameDay(new Date(t.date), date)) return false;
-      if (!t.startTime || !t.endTime) return false;
-      const hasCompletedSession = t.timeSessions?.some(s => s.startTime && s.endTime);
-      return hasCompletedSession === true;
-    });
+    // События для этой даты, отсортированные по времени начала
+    const dayEvents = events
+      .filter(e => e.date === dateString)
+      .sort((a, b) => {
+        const timeA = timeToMinutes(a.startTime);
+        const timeB = timeToMinutes(b.startTime);
+        return timeA - timeB;
+      });
 
-    // События для этой даты
-    const dayEvents = events.filter(e => e.date === dateString);
-
-    return { tasks: dayTasks, events: dayEvents };
+    return { events: dayEvents };
   };
+
+  // Получаем все события для текущего дня (для боковой панели)
+  const dayEventsList = useMemo(() => {
+    return getItemsForDate(currentDate).events;
+  }, [currentDate, events]);
 
   // Генерируем получасовые интервалы
   const timeSlots = useMemo(() => {
@@ -165,84 +190,191 @@ export function CalendarView() {
   );
 
   const renderDayView = () => {
-    const { tasks: dayTasks, events: dayEvents } = getItemsForDate(currentDate);
+    const { events: dayEvents } = getItemsForDate(currentDate);
+    
+    // Группируем события по времени начала для лучшего отображения
+    const eventsBySlot: Record<string, CalendarEvent[]> = {};
+    dayEvents.forEach(event => {
+      const startMinutes = timeToMinutes(event.startTime);
+      const slotKey = `${Math.floor(startMinutes / 30)}`;
+      if (!eventsBySlot[slotKey]) {
+        eventsBySlot[slotKey] = [];
+      }
+      eventsBySlot[slotKey].push(event);
+    });
     
     return (
-      <div className="flex flex-col h-full overflow-y-auto pr-2">
-         {timeSlots.map((slot) => {
-           const timeString = `${slot.hour.toString().padStart(2, '0')}:${slot.minute.toString().padStart(2, '0')}`;
-           const isFullHour = slot.minute === 0;
-           
-           // Находим задачи и события, которые попадают в этот временной слот
-           const slotTasks = dayTasks.filter(t => 
-             t.startTime && t.endTime && isTimeInRange(slot.minutes, t.startTime, t.endTime)
-           );
-           
-           const slotEvents = dayEvents.filter(e => 
-             isTimeInRange(slot.minutes, e.startTime, e.endTime)
-           );
-           
-           return (
-             <div key={`${slot.hour}-${slot.minute}`} className={cn(
-               "flex border-b border-dashed relative group",
-               isFullHour ? "h-12" : "h-6"
-             )}>
-               <div className={cn(
-                 "w-16 flex-shrink-0 text-xs text-muted-foreground pt-1 text-right pr-4 sticky left-0 bg-background/50 z-10",
-                 !isFullHour && "text-[10px] opacity-60"
-               )}>
-                 {timeString}
-               </div>
-               <div 
-                 className="flex-1 relative p-0.5 hover:bg-secondary/20 transition-colors cursor-pointer"
-                 onClick={() => handleSlotClick(currentDate, slot.hour, slot.minute)}
-               >
-                 {/* Отображаем события */}
-                 {slotEvents.map(event => {
-                   const eventTypeIcons = {
-                     reminder: Bell,
-                     meeting: Users,
-                     call: Phone,
-                     task: CheckSquare,
-                   };
-                   const Icon = eventTypeIcons[event.type];
-                   const eventTypeColors = {
-                     reminder: "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400",
-                     meeting: "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-900/30 dark:text-purple-400",
-                     call: "bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400",
-                     task: "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400",
-                   };
-                   
-                   return (
-                     <div 
-                       key={event.id} 
-                       onClick={(e) => e.stopPropagation()} 
-                       className={cn(
-                         "mb-1 p-2 rounded-md border text-xs font-medium flex items-center gap-2",
-                         eventTypeColors[event.type]
-                       )}
-                     >
-                       <Icon className="w-3 h-3 flex-shrink-0" />
-                       <span className="truncate">{event.title}</span>
-                       {event.startTime && event.endTime && (
-                         <span className="text-[10px] opacity-70 ml-auto">
-                           {event.startTime} - {event.endTime}
-                         </span>
-                       )}
-                     </div>
-                   );
-                 })}
-                 
-                 {/* Отображаем задачи */}
-                 {slotTasks.map(task => (
-                   <div key={task.id} onClick={(e) => e.stopPropagation()} className="mb-1">
-                     <TaskCard task={task} compact />
-                   </div>
-                 ))}
-               </div>
-             </div>
-           );
-         })}
+      <div className="flex h-full gap-4">
+        {/* Основная область с временными слотами */}
+        <div className="flex-1 flex flex-col h-full overflow-y-auto pr-2">
+          {timeSlots.map((slot) => {
+            const timeString = `${slot.hour.toString().padStart(2, '0')}:${slot.minute.toString().padStart(2, '0')}`;
+            const isFullHour = slot.minute === 0;
+            const slotKey = `${Math.floor(slot.minutes / 30)}`;
+            const slotEvents = eventsBySlot[slotKey] || [];
+            
+            // Находим события, которые начинаются в этом слоте
+            const startingEvents = slotEvents.filter(e => {
+              const eventStart = timeToMinutes(e.startTime);
+              return eventStart >= slot.minutes && eventStart < slot.minutes + 30;
+            });
+            
+            return (
+              <div key={`${slot.hour}-${slot.minute}`} className={cn(
+                "flex border-b border-dashed relative group",
+                isFullHour ? "h-16" : "h-8"
+              )}>
+                <div className={cn(
+                  "w-20 flex-shrink-0 text-xs text-muted-foreground pt-1 text-right pr-4 sticky left-0 bg-background z-10",
+                  !isFullHour && "text-[10px] opacity-60"
+                )}>
+                  {isFullHour && timeString}
+                </div>
+                <div 
+                  className="flex-1 relative p-1 hover:bg-secondary/20 transition-colors cursor-pointer"
+                  onClick={() => handleSlotClick(currentDate, slot.hour, slot.minute)}
+                >
+                  {startingEvents.map(event => {
+                    const eventTypeIcons = {
+                      reminder: Bell,
+                      meeting: Users,
+                      call: Phone,
+                      task: CheckSquare,
+                    };
+                    const Icon = eventTypeIcons[event.type];
+                    const eventTypeColors = {
+                      reminder: "bg-blue-500/90 text-white border-blue-600 dark:bg-blue-600 dark:text-white shadow-sm",
+                      meeting: "bg-purple-500/90 text-white border-purple-600 dark:bg-purple-600 dark:text-white shadow-sm",
+                      call: "bg-green-500/90 text-white border-green-600 dark:bg-green-600 dark:text-white shadow-sm",
+                      task: "bg-orange-500/90 text-white border-orange-600 dark:bg-orange-600 dark:text-white shadow-sm",
+                    };
+                    
+                    const startMinutes = timeToMinutes(event.startTime);
+                    const endMinutes = event.endTime ? timeToMinutes(event.endTime) : startMinutes + 30;
+                    const duration = endMinutes - startMinutes;
+                    const height = Math.max(duration / 30 * 32, 32); // Минимум 32px, каждый 30 минут = 32px
+                    
+                    return (
+                      <div
+                        key={event.id}
+                        onClick={(e) => handleEventClick(event, e)}
+                        className={cn(
+                          "absolute left-1 right-1 rounded-md border p-2 text-xs font-medium flex flex-col gap-1 cursor-pointer hover:shadow-md transition-all z-20",
+                          eventTypeColors[event.type]
+                        )}
+                        style={{
+                          top: `${((startMinutes - slot.minutes) / 30) * 32}px`,
+                          height: `${height}px`,
+                          minHeight: '32px'
+                        }}
+                      >
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span className="font-semibold truncate">{event.title}</span>
+                        </div>
+                        <div className="text-[10px] opacity-90 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          <span>{event.startTime}{event.endTime && ` - ${event.endTime}`}</span>
+                        </div>
+                        {event.description && (
+                          <div className="text-[10px] opacity-80 line-clamp-1 truncate">
+                            {event.description}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Боковая панель со списком событий */}
+        {dayEventsList.length > 0 && (
+          <div className="w-80 flex-shrink-0 border-l bg-muted/30 p-4 overflow-y-auto">
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                События дня ({dayEventsList.length})
+              </h3>
+              {dayEventsList.map(event => {
+                const eventTypeIcons = {
+                  reminder: Bell,
+                  meeting: Users,
+                  call: Phone,
+                  task: CheckSquare,
+                };
+                const Icon = eventTypeIcons[event.type];
+                const eventTypeColors = {
+                  reminder: "bg-blue-500 text-white",
+                  meeting: "bg-purple-500 text-white",
+                  call: "bg-green-500 text-white",
+                  task: "bg-orange-500 text-white",
+                };
+                
+                return (
+                  <Card 
+                    key={event.id} 
+                    className="cursor-pointer hover:shadow-md transition-all group"
+                    onClick={(e) => handleEventClick(event, e)}
+                  >
+                    <CardContent className="p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className={cn("p-1 rounded", eventTypeColors[event.type])}>
+                              <Icon className="w-3 h-3" />
+                            </div>
+                            <span className="font-semibold text-sm truncate">{event.title}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                            <Clock className="w-3 h-3" />
+                            <span>{event.startTime}{event.endTime && ` - ${event.endTime}`}</span>
+                          </div>
+                          {event.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-2">
+                              {event.description}
+                            </p>
+                          )}
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Edit2 className="h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              handleEventClick(event, e);
+                            }}>
+                              <Edit2 className="mr-2 h-4 w-4" /> Редактировать
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive focus:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteEvent(event.id);
+                              }}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Удалить
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -289,11 +421,7 @@ export function CalendarView() {
                   {timeString}
                 </div>
                 {days.map(day => {
-                  const { tasks: dayTasks, events: dayEvents } = getItemsForDate(day);
-                  
-                  const slotTasks = dayTasks.filter(t => 
-                    t.startTime && t.endTime && isTimeInRange(slot.minutes, t.startTime, t.endTime)
-                  );
+                  const { events: dayEvents } = getItemsForDate(day);
                   
                   const slotEvents = dayEvents.filter(e => 
                     isTimeInRange(slot.minutes, e.startTime, e.endTime)
@@ -313,23 +441,27 @@ export function CalendarView() {
                          task: CheckSquare,
                        };
                        const Icon = eventTypeIcons[event.type];
+                       const eventTypeColors = {
+                         reminder: "bg-blue-500/90 text-white",
+                         meeting: "bg-purple-500/90 text-white",
+                         call: "bg-green-500/90 text-white",
+                         task: "bg-orange-500/90 text-white",
+                       };
                        
                        return (
                          <div 
                            key={event.id} 
-                           onClick={(e) => e.stopPropagation()} 
-                           className="mb-0.5 p-1 rounded text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 truncate flex items-center gap-1"
+                           onClick={(e) => handleEventClick(event, e)} 
+                           className={cn(
+                             "mb-0.5 p-1.5 rounded text-[10px] font-medium truncate flex items-center gap-1 cursor-pointer hover:shadow-sm transition-all",
+                             eventTypeColors[event.type]
+                           )}
                          >
                            <Icon className="w-2.5 h-2.5 flex-shrink-0" />
                            <span className="truncate">{event.title}</span>
                          </div>
                        );
                      })}
-                     {slotTasks.map(task => (
-                       <div key={task.id} onClick={(e) => e.stopPropagation()} className="mb-0.5">
-                         <TaskCard task={task} compact />
-                       </div>
-                     ))}
                     </div>
                   );
                 })}
@@ -364,7 +496,7 @@ export function CalendarView() {
         {/* Calendar Grid */}
         <div className="flex-1 grid grid-cols-7 auto-rows-fr">
           {days.map((day, idx) => {
-             const { tasks: dayTasks, events: dayEvents } = getItemsForDate(day);
+             const { events: dayEvents } = getItemsForDate(day);
              const isCurrentMonth = isSameMonth(day, currentDate);
              
              return (
@@ -386,7 +518,7 @@ export function CalendarView() {
                  </div>
                  
                  <div className="flex-1 overflow-hidden space-y-1">
-                   {dayEvents.slice(0, 2).map(event => {
+                   {dayEvents.slice(0, 3).map(event => {
                      const eventTypeIcons = {
                        reminder: Bell,
                        meeting: Users,
@@ -394,23 +526,33 @@ export function CalendarView() {
                        task: CheckSquare,
                      };
                      const Icon = eventTypeIcons[event.type];
+                     const eventTypeColors = {
+                       reminder: "bg-blue-500/90 text-white",
+                       meeting: "bg-purple-500/90 text-white",
+                       call: "bg-green-500/90 text-white",
+                       task: "bg-orange-500/90 text-white",
+                     };
                      
                      return (
                        <div 
-                         key={event.id} 
-                         className="text-[10px] p-1 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 truncate flex items-center gap-1"
+                         key={event.id}
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           handleEventClick(event, e);
+                         }}
+                         className={cn(
+                           "text-[10px] p-1.5 rounded font-medium truncate flex items-center gap-1 cursor-pointer hover:shadow-sm transition-all",
+                           eventTypeColors[event.type]
+                         )}
                        >
                          <Icon className="w-2.5 h-2.5 flex-shrink-0" />
                          <span className="truncate">{event.title}</span>
                        </div>
                      );
                    })}
-                   {dayTasks.slice(0, 3 - dayEvents.length).map(task => (
-                     <TaskCard key={task.id} task={task} compact />
-                   ))}
-                   {(dayTasks.length + dayEvents.length) > 3 && (
+                   {dayEvents.length > 3 && (
                      <div className="text-xs text-muted-foreground text-center pt-1">
-                       + ещё {(dayTasks.length + dayEvents.length) - 3}
+                       + ещё {dayEvents.length - 3}
                      </div>
                    )}
                  </div>
@@ -434,11 +576,18 @@ export function CalendarView() {
 
       <EventForm 
         open={isEventFormOpen} 
-        onOpenChange={setIsEventFormOpen} 
+        onOpenChange={(open) => {
+          setIsEventFormOpen(open);
+          if (!open) {
+            setSelectedEvent(undefined);
+            setSelectedSlot(null);
+          }
+        }}
         initialDate={selectedSlot?.date}
         initialTime={selectedSlot?.hour !== undefined && selectedSlot?.minute !== undefined 
           ? `${selectedSlot.hour.toString().padStart(2, '0')}:${selectedSlot.minute.toString().padStart(2, '0')}`
           : undefined}
+        eventToEdit={selectedEvent}
       />
     </div>
   );
