@@ -168,28 +168,30 @@ export function TaskForm({ open, onOpenChange, initialDate, initialProjectId, ta
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <FolderKanban className="w-4 h-4" /> Проект
-              </Label>
-              <Select 
-                value={form.watch("projectId") || "none"}
-                onValueChange={(val) => form.setValue("projectId", val === "none" ? "" : val)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Выберите проект" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Без проекта</SelectItem>
-                  {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className={initialProjectId ? "grid grid-cols-1 gap-4" : "grid grid-cols-2 gap-4"}>
+            {!initialProjectId && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <FolderKanban className="w-4 h-4" /> Проект
+                </Label>
+                <Select 
+                  value={form.watch("projectId") || "none"}
+                  onValueChange={(val) => form.setValue("projectId", val === "none" ? "" : val)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите проект" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Без проекта</SelectItem>
+                    {projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">

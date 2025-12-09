@@ -246,44 +246,20 @@ export function TaskCard({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-xs" draggable={false} onDragStart={(e) => e.stopPropagation()}>
-             {project && (
-               <Link href={`/projects/${project.id}`} draggable={false} onDragStart={(e) => e.stopPropagation()}>
-                 <Badge 
-                   variant="outline" 
-                   className="cursor-pointer hover:bg-accent transition-colors flex items-center gap-1"
-                   draggable={false}
-                 >
-                   <FolderKanban className="w-3 h-3" />
-                   {project.name}
-                 </Badge>
-               </Link>
+             {task.estimatedTime && task.estimatedTime > 0 && (
+               <div className="flex items-center text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-full font-mono">
+                 <Clock className="w-3 h-3 mr-1" />
+                 Оценка: {(() => {
+                   const hours = Math.floor(task.estimatedTime / 60);
+                   const minutes = task.estimatedTime % 60;
+                   return hours > 0 ? `${hours}ч ${minutes}м` : `${minutes}м`;
+                 })()}
+               </div>
              )}
 
              <Badge variant="outline" className={cn("uppercase tracking-wider font-bold border-0 px-2 py-0.5 rounded-full", priorityColors[task.priority])}>
                {priorityLabels[task.priority]}
              </Badge>
-
-             {task.timeSessions && task.timeSessions.length > 0 && (() => {
-               const lastSession = task.timeSessions[task.timeSessions.length - 1];
-               const isActive = lastSession && !lastSession.endTime;
-               if (isActive && lastSession.startTimeReal) {
-                 return (
-                   <div className="flex items-center text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-full">
-                     <Clock className="w-3 h-3 mr-1" />
-                     {lastSession.startTimeReal}
-                   </div>
-                 );
-               }
-               if (lastSession && lastSession.startTimeReal && lastSession.endTimeReal) {
-                 return (
-                   <div className="flex items-center text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-full">
-                     <Clock className="w-3 h-3 mr-1" />
-                     {lastSession.startTimeReal} - {lastSession.endTimeReal}
-                   </div>
-                 );
-               }
-               return null;
-             })()}
 
              {task.tags.map(tag => (
                <span key={tag} className="px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground border border-border/50">

@@ -41,10 +41,10 @@ export function TaskTimer({ taskId, compact = false }: TaskTimerProps) {
     return () => clearInterval(interval);
   }, [isRunning, activeSession]);
 
-  // Получаем все завершенные сессии
-  const completedSessions = task?.timeSessions?.filter(
+  // Получаем все завершенные сессии и сортируем по времени начала (от старых к новым)
+  const completedSessions = (task?.timeSessions?.filter(
     (s) => s.startTime && s.endTime && s.duration
-  ) || [];
+  ) || []).sort((a, b) => a.startTime - b.startTime);
 
   const totalTime = getTotalTime(taskId);
   // Время текущей активной сессии (начинается с нуля)
@@ -150,22 +150,20 @@ export function TaskTimer({ taskId, compact = false }: TaskTimerProps) {
           {isRunning ? (
             <Button
               variant="default"
-              size="sm"
+              size="icon"
               onClick={handleStop}
-              className="h-9"
+              className="h-9 w-9"
             >
-              <Square className="h-4 w-4 mr-2" />
-              Стоп
+              <Square className="h-4 w-4" />
             </Button>
           ) : (
             <Button
               variant="default"
-              size="sm"
+              size="icon"
               onClick={handleStart}
-              className="h-9"
+              className="h-9 w-9"
             >
-              <Play className="h-4 w-4 mr-2" />
-              Плэй
+              <Play className="h-4 w-4" />
             </Button>
           )}
         </div>
@@ -204,7 +202,7 @@ export function TaskTimer({ taskId, compact = false }: TaskTimerProps) {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">
-                      #{completedSessions.length - index}
+                      #{index + 1}
                     </span>
                     <div className="flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-muted-foreground" />
