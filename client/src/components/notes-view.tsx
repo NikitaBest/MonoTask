@@ -2,13 +2,14 @@ import { useState, useMemo } from "react";
 import { useStore, Note } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Tag, Edit2, Trash2, FileText, X } from "lucide-react";
+import { Plus, Search, Tag, Edit2, Trash2, FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { NoteForm } from "./note-form";
+import { Link, useLocation } from "wouter";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +22,7 @@ export function NotesView() {
   const notes = useStore((state) => state.notes);
   const deleteNote = useStore((state) => state.deleteNote);
   const getAllTags = useStore((state) => state.getAllTags);
+  const [, setLocation] = useLocation();
   
   const [search, setSearch] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -44,11 +46,6 @@ export function NotesView() {
 
   const handleCreateNote = () => {
     setSelectedNote(undefined);
-    setIsFormOpen(true);
-  };
-
-  const handleEditNote = (note: Note) => {
-    setSelectedNote(note);
     setIsFormOpen(true);
   };
 
@@ -129,11 +126,10 @@ export function NotesView() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredNotes.map((note) => (
-              <Card 
-                key={note.id} 
-                className="group relative flex flex-col hover:shadow-md transition-all cursor-pointer"
-                onClick={() => handleEditNote(note)}
-              >
+              <Link key={note.id} href={`/notes/${note.id}`}>
+                <Card 
+                  className="group relative flex flex-col hover:shadow-md transition-all cursor-pointer"
+                >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-2">
                     <CardTitle className="text-lg font-semibold line-clamp-2 flex-1">
@@ -151,11 +147,13 @@ export function NotesView() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditNote(note);
-                        }}>
-                          <Edit2 className="mr-2 h-4 w-4" /> Редактировать
+                        <DropdownMenuItem 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLocation(`/notes/${note.id}`);
+                          }}
+                        >
+                          <Edit2 className="mr-2 h-4 w-4" /> Открыть
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
@@ -201,6 +199,7 @@ export function NotesView() {
                   </div>
                 </CardContent>
               </Card>
+              </Link>
             ))}
           </div>
         )}

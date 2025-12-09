@@ -9,6 +9,7 @@ import CalendarPage from "@/pages/calendar";
 import ListPage from "@/pages/list";
 import ProjectsPage from "@/pages/projects";
 import ProjectDetailPage from "@/pages/project-detail";
+import NoteDetailPage from "@/pages/note-detail";
 import SettingsPage from "@/pages/settings";
 
 function Router() {
@@ -17,6 +18,7 @@ function Router() {
       <Switch>
         <Route path="/" component={CalendarPage} />
         <Route path="/list" component={ListPage} />
+        <Route path="/notes/:id" component={NoteDetailPage} />
         <Route path="/projects" component={ProjectsPage} />
         <Route path="/projects/:id" component={ProjectDetailPage} />
         <Route path="/settings" component={SettingsPage} />
