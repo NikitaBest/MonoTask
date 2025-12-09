@@ -118,6 +118,7 @@ interface AppState {
   pauseTimer: (taskId: string) => void;
   getTotalTimeForTask: (taskId: string) => number; // возвращает время в миллисекундах
   getTotalTimeForProject: (projectId: string) => number; // возвращает время в миллисекундах
+  getTotalEstimatedTimeForProject: (projectId: string) => number; // возвращает общую оценку времени в минутах
   
   // Project Actions
   addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -296,6 +297,14 @@ export const useStore = create<AppState>()(
           (sum, task) => sum + get().getTotalTimeForTask(task.id),
           0
         );
+      },
+
+      getTotalEstimatedTimeForProject: (projectId) => {
+        return get().tasks
+          .filter((t) => t.projectId === projectId)
+          .reduce((total, task) => {
+            return total + (task.estimatedTime || 0);
+          }, 0);
       },
 
       // Project Actions

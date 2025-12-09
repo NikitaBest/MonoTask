@@ -25,6 +25,7 @@ interface ProjectCardProps {
 export function ProjectCard({ project, onEdit }: ProjectCardProps) {
   const deleteProject = useStore((state) => state.deleteProject);
   const getTotalTimeForProject = useStore((state) => state.getTotalTimeForProject);
+  const getTotalEstimatedTimeForProject = useStore((state) => state.getTotalEstimatedTimeForProject);
   // Получаем все задачи один раз
   const allTasks = useStore((state) => state.tasks);
   
@@ -45,6 +46,10 @@ export function ProjectCard({ project, onEdit }: ProjectCardProps) {
   const totalTimeMs = useMemo(() => getTotalTimeForProject(project.id), [getTotalTimeForProject, project.id]);
   const totalHours = Math.floor(totalTimeMs / (1000 * 60 * 60));
   const totalMinutes = Math.floor((totalTimeMs % (1000 * 60 * 60)) / (1000 * 60));
+
+  const totalEstimatedMinutes = useMemo(() => getTotalEstimatedTimeForProject(project.id), [getTotalEstimatedTimeForProject, project.id]);
+  const estimatedHours = Math.floor(totalEstimatedMinutes / 60);
+  const estimatedMinutes = totalEstimatedMinutes % 60;
 
   const categoryColors: Record<string, string> = {
     'работа': 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
@@ -135,12 +140,20 @@ export function ProjectCard({ project, onEdit }: ProjectCardProps) {
               </div>
             )}
           </div>
-          {totalTimeMs > 0 && (
-            <div className="flex items-center gap-1 font-mono text-xs">
-              <Clock className="h-3 w-3" />
-              <span>{totalHours > 0 ? `${totalHours}ч ` : ''}{totalMinutes}м</span>
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            {totalEstimatedMinutes > 0 && (
+              <div className="flex items-center gap-1 font-mono text-xs">
+                <Clock className="h-3 w-3" />
+                <span>Оценка: {estimatedHours > 0 ? `${estimatedHours}ч ` : ''}{estimatedMinutes}м</span>
+              </div>
+            )}
+            {totalTimeMs > 0 && (
+              <div className="flex items-center gap-1 font-mono text-xs">
+                <Clock className="h-3 w-3" />
+                <span>Факт: {totalHours > 0 ? `${totalHours}ч ` : ''}{totalMinutes}м</span>
+              </div>
+            )}
+          </div>
         </div>
 
         <Link href={`/projects/${project.id}`}>

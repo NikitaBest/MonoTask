@@ -47,6 +47,7 @@ export default function ProjectDetailPage() {
   }
 
   const getTotalTimeForProject = useStore((state) => state.getTotalTimeForProject);
+  const getTotalEstimatedTimeForProject = useStore((state) => state.getTotalEstimatedTimeForProject);
   
   const completedTasks = tasks.filter(t => t.status === 'completed').length;
   const totalTasks = tasks.length;
@@ -57,6 +58,10 @@ export default function ProjectDetailPage() {
   const totalTimeMs = projectId ? getTotalTimeForProject(projectId) : 0;
   const totalHours = Math.floor(totalTimeMs / (1000 * 60 * 60));
   const totalMinutes = Math.floor((totalTimeMs % (1000 * 60 * 60)) / (1000 * 60));
+
+  const totalEstimatedMinutes = projectId ? getTotalEstimatedTimeForProject(projectId) : 0;
+  const estimatedHours = Math.floor(totalEstimatedMinutes / 60);
+  const estimatedMinutes = totalEstimatedMinutes % 60;
 
   const categoryColors: Record<string, string> = {
     'работа': 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
@@ -106,9 +111,16 @@ export default function ProjectDetailPage() {
             <div className="text-xs text-muted-foreground">
               Прогресс: <span className="font-semibold text-foreground">{progress}%</span>
             </div>
-            <div className="text-xs text-muted-foreground font-mono">
-              {totalHours > 0 ? `${totalHours}ч` : ''} {totalMinutes}м
-            </div>
+            {totalEstimatedMinutes > 0 && (
+              <div className="text-xs text-muted-foreground font-mono">
+                Оценка: {estimatedHours > 0 ? `${estimatedHours}ч` : ''} {estimatedMinutes}м
+              </div>
+            )}
+            {totalTimeMs > 0 && (
+              <div className="text-xs text-muted-foreground font-mono">
+                Факт: {totalHours > 0 ? `${totalHours}ч` : ''} {totalMinutes}м
+              </div>
+            )}
           </div>
           
           <Button onClick={() => setIsFormOpen(true)} size="sm" className="flex-shrink-0">
