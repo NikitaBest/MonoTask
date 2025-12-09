@@ -71,11 +71,38 @@ export interface Note {
   updatedAt: number;
 }
 
+export interface Payment {
+  id: string;
+  projectId: string; // ID проекта
+  amount: number; // Сумма оплаты
+  currency: string; // Валюта (RUB, USD, EUR и т.д.)
+  date: string; // ISO date string YYYY-MM-DD
+  description?: string; // Описание оплаты
+  documentUrl?: string; // Ссылка на документ (чек, счет и т.д.)
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Expense {
+  id: string;
+  projectId: string; // ID проекта
+  amount: number; // Сумма расхода
+  currency: string; // Валюта (RUB, USD, EUR и т.д.)
+  date: string; // ISO date string YYYY-MM-DD
+  description?: string; // Описание расхода
+  category?: string; // Категория расхода (разработчик, дизайнер, сервер, сервис и т.д.)
+  documentUrl?: string; // Ссылка на документ (чек, счет и т.д.)
+  createdAt: number;
+  updatedAt: number;
+}
+
 interface AppState {
   tasks: Task[];
   projects: Project[];
   events: CalendarEvent[]; // События/напоминания для календаря
   notes: Note[]; // Заметки
+  payments: Payment[]; // Оплаты по проектам
+  expenses: Expense[]; // Расходы по проектам
   settings: AppSettings;
   
   // Task Actions
@@ -112,6 +139,20 @@ interface AppState {
   getNotesByTag: (tag: string) => Note[];
   getAllTags: () => string[];
   
+  // Payments Actions
+  addPayment: (payment: Omit<Payment, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updatePayment: (id: string, updates: Partial<Payment>) => void;
+  deletePayment: (id: string) => void;
+  getPaymentsByProject: (projectId: string) => Payment[];
+  getTotalPaymentsForProject: (projectId: string) => number; // Общая сумма оплат
+  
+  // Expenses Actions
+  addExpense: (expense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateExpense: (id: string, updates: Partial<Expense>) => void;
+  deleteExpense: (id: string) => void;
+  getExpensesByProject: (projectId: string) => Expense[];
+  getTotalExpensesForProject: (projectId: string) => number; // Общая сумма расходов
+  
   // Settings
   updateSettings: (settings: Partial<AppSettings>) => void;
 }
@@ -123,6 +164,8 @@ export const useStore = create<AppState>()(
       projects: [],
       events: [],
       notes: [],
+      payments: [],
+      expenses: [],
       settings: {
         defaultView: 'day',
         theme: 'system',
@@ -345,6 +388,76 @@ export const useStore = create<AppState>()(
           n.tags.forEach((tag) => allTags.add(tag));
         });
         return Array.from(allTags).sort();
+      },
+
+      // Payments Actions
+      addPayment: (paymentData) => set((state) => {
+        const now = Date.now();
+        return {
+          payments: [...state.payments, {
+            ...paymentData,
+            id: crypto.randomUUID(),
+            createdAt: now,
+            updatedAt: now
+          }]
+        };
+      }),
+
+      updatePayment: (id, updates) => set((state) => ({
+        payments: state.payments.map((p) =>
+          p.id === id ? { ...p, ...updates, updatedAt: Date.now() } : p
+        )
+      })),
+
+      deletePayment: (id) => set((state) => ({
+        payments: state.payments.filter((p) => p.id !== id)
+      })),
+
+      getPaymentsByProject: (projectId) => {
+        return get().payments
+          .filter((p) => p.projectId === projectId)
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      },
+
+      getTotalPaymentsForProject: (projectId) => {
+        return get().payments
+          .filter((p) => p.projectId === projectId)
+          .reduce((sum, p) => sum + p.amount, 0);
+      },
+
+      // Expenses Actions
+      addExpense: (expenseData) => set((state) => {
+        const now = Date.now();
+        return {
+          expenses: [...state.expenses, {
+            ...expenseData,
+            id: crypto.randomUUID(),
+            createdAt: now,
+            updatedAt: now
+          }]
+        };
+      }),
+
+      updateExpense: (id, updates) => set((state) => ({
+        expenses: state.expenses.map((e) =>
+          e.id === id ? { ...e, ...updates, updatedAt: Date.now() } : e
+        )
+      })),
+
+      deleteExpense: (id) => set((state) => ({
+        expenses: state.expenses.filter((e) => e.id !== id)
+      })),
+
+      getExpensesByProject: (projectId) => {
+        return get().expenses
+          .filter((e) => e.projectId === projectId)
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      },
+
+      getTotalExpensesForProject: (projectId) => {
+        return get().expenses
+          .filter((e) => e.projectId === projectId)
+          .reduce((sum, e) => sum + e.amount, 0);
       },
 
       // Settings

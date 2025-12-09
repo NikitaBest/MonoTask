@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { TaskForm } from "@/components/task-form";
 import { ProjectNotes } from "@/components/project-notes";
 import { ProjectStats } from "@/components/project-stats";
+import { ProjectPayments } from "@/components/project-payments";
 import { KanbanBoard } from "@/components/kanban-board";
-import { ArrowLeft, Plus, FolderKanban, CheckSquare, FileText, PieChart } from "lucide-react";
+import { ArrowLeft, Plus, FolderKanban, CheckSquare, FileText, PieChart, DollarSign } from "lucide-react";
 import { Link } from "wouter";
 import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -136,6 +137,13 @@ export default function ProjectDetailPage() {
                 Заметки
               </TabsTrigger>
               <TabsTrigger 
+                value="payments" 
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-6 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              >
+                <DollarSign className="h-4 w-4" />
+                Финансы
+              </TabsTrigger>
+              <TabsTrigger 
                 value="stats" 
                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-6 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
               >
@@ -155,6 +163,10 @@ export default function ProjectDetailPage() {
             <div className="max-w-4xl mx-auto">
               <ProjectNotes projectId={projectId!} />
             </div>
+          </TabsContent>
+
+          <TabsContent value="payments" className="flex-1 overflow-hidden mt-0 h-full">
+            <ProjectPayments projectId={projectId!} />
           </TabsContent>
 
           <TabsContent value="stats" className="flex-1 overflow-hidden mt-0 h-full">
