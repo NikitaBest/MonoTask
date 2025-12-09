@@ -263,12 +263,27 @@ export function TaskCard({
                {priorityLabels[task.priority]}
              </Badge>
 
-             {(task.startTime || task.endTime) && (
-               <div className="flex items-center text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-full">
-                 <Clock className="w-3 h-3 mr-1" />
-                 {task.startTime}{task.endTime && ` - ${task.endTime}`}
-               </div>
-             )}
+             {task.timeSessions && task.timeSessions.length > 0 && (() => {
+               const lastSession = task.timeSessions[task.timeSessions.length - 1];
+               const isActive = lastSession && !lastSession.endTime;
+               if (isActive && lastSession.startTimeReal) {
+                 return (
+                   <div className="flex items-center text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-full">
+                     <Clock className="w-3 h-3 mr-1" />
+                     {lastSession.startTimeReal}
+                   </div>
+                 );
+               }
+               if (lastSession && lastSession.startTimeReal && lastSession.endTimeReal) {
+                 return (
+                   <div className="flex items-center text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-full">
+                     <Clock className="w-3 h-3 mr-1" />
+                     {lastSession.startTimeReal} - {lastSession.endTimeReal}
+                   </div>
+                 );
+               }
+               return null;
+             })()}
 
              {task.tags.map(tag => (
                <span key={tag} className="px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground border border-border/50">

@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Square } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Play, Square, Clock } from "lucide-react";
+import { format } from "date-fns";
 
 interface TaskTimerProps {
   taskId: string;
@@ -13,7 +13,6 @@ export function TaskTimer({ taskId, compact = false }: TaskTimerProps) {
   const task = useStore((state) => state.tasks.find((t) => t.id === taskId));
   const startTimer = useStore((state) => state.startTimer);
   const stopTimer = useStore((state) => state.stopTimer);
-  const pauseTimer = useStore((state) => state.pauseTimer);
   const getTotalTime = useStore((state) => state.getTotalTimeForTask);
 
   const [currentTime, setCurrentTime] = useState(0);
@@ -42,8 +41,16 @@ export function TaskTimer({ taskId, compact = false }: TaskTimerProps) {
     return () => clearInterval(interval);
   }, [isRunning, activeSession]);
 
+  // Получаем все завершенные сессии
+  const completedSessions = task?.timeSessions?.filter(
+    (s) => s.startTime && s.endTime && s.duration
+  ) || [];
+
   const totalTime = getTotalTime(taskId);
-  const displayTime = isRunning ? totalTime + currentTime : totalTime;
+  // Время текущей активной сессии (начинается с нуля)
+  const currentSessionTime = isRunning ? currentTime : 0;
+  // Общее время всех завершенных сессий (без текущей)
+  const completedSessionsTime = completedSessions.reduce((sum, s) => sum + (s.duration || 0), 0);
 
   const formatTime = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);
@@ -57,6 +64,17 @@ export function TaskTimer({ taskId, compact = false }: TaskTimerProps) {
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
+  const formatDuration = (ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+    if (hours > 0) {
+      return `${hours}ч ${minutes}м`;
+    }
+    return `${minutes}м`;
+  };
+
   const handleStart = () => {
     startTimer(taskId);
   };
@@ -65,16 +83,18 @@ export function TaskTimer({ taskId, compact = false }: TaskTimerProps) {
     stopTimer(taskId);
   };
 
-  const handlePause = () => {
-    pauseTimer(taskId);
-  };
-
   if (compact) {
+    const totalTimeForCompact = getTotalTime(taskId);
     return (
       <div className="flex items-center gap-2">
         <span className="text-xs font-mono text-muted-foreground">
-          {formatTime(displayTime)}
+          {formatTime(isRunning ? currentTime : 0)}
         </span>
+        {totalTimeForCompact > 0 && !isRunning && (
+          <span className="text-[10px] text-muted-foreground/70">
+            ({formatTime(totalTimeForCompact)})
+          </span>
+        )}
         {isRunning ? (
           <Button
             variant="ghost"
@@ -99,52 +119,103 @@ export function TaskTimer({ taskId, compact = false }: TaskTimerProps) {
   }
 
   return (
-    <div className="flex items-center gap-2 p-2 rounded-lg border bg-card">
-      <div className="flex-1">
-        <div className="text-sm font-mono font-semibold">
-          {formatTime(displayTime)}
-        </div>
-        {task?.estimatedTime && (
-          <div className="text-xs text-muted-foreground">
-            Оценка: {Math.floor(task.estimatedTime / 60)}ч {task.estimatedTime % 60}м
+    <div className="space-y-3">
+      {/* Основной блок с таймером и кнопками */}
+      <div className="relative flex items-center gap-2 p-3 rounded-lg border bg-card">
+        {/* Общее время в правом верхнем углу */}
+        {totalTime > 0 && (
+          <div className="absolute top-2 right-2 text-xs text-muted-foreground whitespace-nowrap">
+            Всего: {formatTime(completedSessionsTime + (isRunning ? currentTime : 0))}
           </div>
         )}
-      </div>
-      <div className="flex items-center gap-1">
-        {isRunning ? (
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePause}
-              className="h-8"
-            >
-              <Pause className="h-3 w-3 mr-1" />
-              Пауза
-            </Button>
+        
+        <div className="flex-1 pr-20">
+          <div className="text-lg font-mono font-semibold">
+            {formatTime(currentSessionTime)}
+          </div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            {isRunning ? "Текущая сессия" : "Время сессии"}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {isRunning ? (
             <Button
               variant="default"
               size="sm"
               onClick={handleStop}
-              className="h-8"
+              className="h-9"
             >
-              <Square className="h-3 w-3 mr-1" />
+              <Square className="h-4 w-4 mr-2" />
               Стоп
             </Button>
-          </>
-        ) : (
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleStart}
-            className="h-8"
-          >
-            <Play className="h-3 w-3 mr-1" />
-            Старт
-          </Button>
-        )}
+          ) : (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleStart}
+              className="h-9"
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Плэй
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Текущая сессия (если запущена) */}
+      {isRunning && activeSession && (
+        <div className="p-3 rounded-lg border bg-muted/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm">
+              <Clock className="w-4 h-4 text-muted-foreground" />
+              <span className="font-medium">Текущая сессия</span>
+            </div>
+            <div className="text-sm font-mono">
+              {activeSession.startTimeReal}
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            Начало: {activeSession.startTimeReal}
+          </div>
+        </div>
+      )}
+
+      {/* История сессий */}
+      {completedSessions.length > 0 && (
+        <div className="space-y-2">
+          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            История сессий ({completedSessions.length})
+          </div>
+          <div className="space-y-1.5">
+            {completedSessions.map((session, index) => (
+              <div
+                key={session.id}
+                className="p-2.5 rounded-md border bg-muted/20 text-sm"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      #{completedSessions.length - index}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span className="font-mono">
+                        {session.startTimeReal}
+                        {session.endTimeReal && ` - ${session.endTimeReal}`}
+                      </span>
+                    </div>
+                  </div>
+                  {session.duration && (
+                    <span className="text-xs font-mono text-muted-foreground">
+                      {formatDuration(session.duration)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-

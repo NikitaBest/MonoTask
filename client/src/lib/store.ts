@@ -7,9 +7,11 @@ export type Priority = 'low' | 'medium' | 'high';
 
 export interface TimeSession {
   id: string;
-  startTime: number; // timestamp
+  startTime: number; // timestamp для вычислений
   endTime?: number; // timestamp (undefined если сессия активна)
   duration?: number; // длительность в миллисекундах
+  startTimeReal: string; // Реальное время начала в формате HH:mm
+  endTimeReal?: string; // Реальное время окончания в формате HH:mm
 }
 
 export interface Task {
@@ -167,12 +169,13 @@ export const useStore = create<AppState>()(
         const currentDate = new Date(now);
         const dateString = format(currentDate, 'yyyy-MM-dd');
         
-        // Фиксируем дату начала работы (обновляем date на текущую дату)
-        const startTimeString = format(currentDate, 'HH:mm');
+        // Фиксируем реальное время начала
+        const startTimeReal = format(currentDate, 'HH:mm');
 
         const newSession: TimeSession = {
           id: crypto.randomUUID(),
           startTime: now,
+          startTimeReal: startTimeReal,
         };
 
         return {
@@ -181,7 +184,7 @@ export const useStore = create<AppState>()(
               ? {
                   ...t,
                   date: dateString, // Фиксируем дату начала работы
-                  startTime: startTimeString, // Фиксируем время начала
+                  startTime: startTimeReal, // Фиксируем время начала для отображения
                   timeSessions: [...(t.timeSessions || []), newSession],
                   status: t.status === 'planned' ? 'in-progress' : t.status,
                 }
@@ -202,19 +205,20 @@ export const useStore = create<AppState>()(
         const endTime = Date.now();
         const duration = endTime - activeSession.startTime;
         
-        // Фиксируем дату и время окончания работы
+        // Фиксируем реальное время окончания
         const endDate = new Date(endTime);
-        const endTimeString = format(endDate, 'HH:mm');
+        const endTimeReal = format(endDate, 'HH:mm');
 
         return {
           tasks: state.tasks.map((t) =>
             t.id === taskId
               ? {
                   ...t,
-                  endTime: endTimeString, // Фиксируем время окончания
+                  endTime: endTimeReal, // Фиксируем время окончания для отображения
+                  startTime: undefined, // Обнуляем startTime для отображения
                   timeSessions: t.timeSessions!.map((s) =>
                     s.id === activeSession.id
-                      ? { ...s, endTime, duration }
+                      ? { ...s, endTime, duration, endTimeReal }
                       : s
                   ),
                 }
@@ -222,11 +226,6 @@ export const useStore = create<AppState>()(
           ),
         };
       }),
-
-      pauseTimer: (taskId) => {
-        // Пока что pause = stop, можно расширить позже
-        get().stopTimer(taskId);
-      },
 
       getTotalTimeForTask: (taskId) => {
         const task = get().tasks.find((t) => t.id === taskId);
