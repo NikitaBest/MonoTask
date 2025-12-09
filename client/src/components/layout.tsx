@@ -9,7 +9,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { icon: Calendar, label: "Календарь", href: "/" },
     { icon: FileText, label: "Заметки", href: "/list" },
     { icon: FolderKanban, label: "Проекты", href: "/projects" },
-    { icon: PieChart, label: "Статистика", href: "/stats" },
     { icon: Settings, label: "Настройки", href: "/settings" },
   ];
 

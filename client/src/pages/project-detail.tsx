@@ -3,6 +3,7 @@ import { useStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { TaskForm } from "@/components/task-form";
 import { ProjectNotes } from "@/components/project-notes";
+import { ProjectStats } from "@/components/project-stats";
 import { KanbanBoard } from "@/components/kanban-board";
 import { ArrowLeft, Plus, FolderKanban } from "lucide-react";
 import { Link } from "wouter";
@@ -115,7 +116,7 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      {/* Вкладки: Задачи и Заметки */}
+      {/* Вкладки: Задачи, Заметки и Статистика */}
       <div className="flex-1 flex flex-col overflow-hidden min-h-0">
         <Tabs defaultValue="tasks" className="flex-1 flex flex-col overflow-hidden h-full">
           <div className="flex-shrink-0 px-4 pt-3 pb-2 border-b bg-background/95 backdrop-blur-sm z-10">
@@ -132,6 +133,12 @@ export default function ProjectDetailPage() {
               >
                 📝 Заметки
               </TabsTrigger>
+              <TabsTrigger 
+                value="stats" 
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-6 py-1.5 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              >
+                📊 Статистика
+              </TabsTrigger>
             </TabsList>
           </div>
           <TabsContent value="tasks" className="flex-1 overflow-hidden mt-0 h-full">
@@ -145,6 +152,10 @@ export default function ProjectDetailPage() {
             <div className="max-w-4xl mx-auto">
               <ProjectNotes projectId={projectId!} />
             </div>
+          </TabsContent>
+
+          <TabsContent value="stats" className="flex-1 overflow-hidden mt-0 h-full">
+            <ProjectStats projectId={projectId!} />
           </TabsContent>
         </Tabs>
       </div>

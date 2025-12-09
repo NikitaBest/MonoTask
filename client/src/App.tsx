@@ -9,7 +9,6 @@ import CalendarPage from "@/pages/calendar";
 import ListPage from "@/pages/list";
 import ProjectsPage from "@/pages/projects";
 import ProjectDetailPage from "@/pages/project-detail";
-import StatsPage from "@/pages/stats";
 import SettingsPage from "@/pages/settings";
 
 function Router() {
@@ -20,7 +19,6 @@ function Router() {
         <Route path="/list" component={ListPage} />
         <Route path="/projects" component={ProjectsPage} />
         <Route path="/projects/:id" component={ProjectDetailPage} />
-        <Route path="/stats" component={StatsPage} />
         <Route path="/settings" component={SettingsPage} />
         <Route component={NotFound} />
       </Switch>
