@@ -10,6 +10,7 @@ import ListPage from "@/pages/list";
 import ProjectsPage from "@/pages/projects";
 import ProjectDetailPage from "@/pages/project-detail";
 import NoteDetailPage from "@/pages/note-detail";
+import ResourceDetailPage from "@/pages/resource-detail";
 import SettingsPage from "@/pages/settings";
 
 function Router() {
@@ -21,6 +22,7 @@ function Router() {
         <Route path="/notes/:id" component={NoteDetailPage} />
         <Route path="/projects" component={ProjectsPage} />
         <Route path="/projects/:id" component={ProjectDetailPage} />
+        <Route path="/projects/:projectId/resources/:id" component={ResourceDetailPage} />
         <Route path="/settings" component={SettingsPage} />
         <Route component={NotFound} />
       </Switch>

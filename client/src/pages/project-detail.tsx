@@ -1,4 +1,4 @@
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { useStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { TaskForm } from "@/components/task-form";
@@ -9,13 +9,14 @@ import { ProjectResources } from "@/components/project-resources";
 import { KanbanBoard } from "@/components/kanban-board";
 import { ArrowLeft, Plus, FolderKanban, CheckSquare, FileText, PieChart, DollarSign, Link as LinkIcon } from "lucide-react";
 import { Link } from "wouter";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 export default function ProjectDetailPage() {
   const [, params] = useRoute("/projects/:id");
+  const [location] = useLocation();
   const projectId = params?.id;
   
   const project = useStore((state) => 
@@ -29,6 +30,30 @@ export default function ProjectDetailPage() {
   );
   
   const [isFormOpen, setIsFormOpen] = useState(false);
+  
+  // Определяем активную вкладку из хеша URL
+  const getActiveTabFromHash = () => {
+    const hash = window.location.hash.replace('#', '');
+    const validTabs = ['tasks', 'notes', 'payments', 'resources', 'stats'];
+    return validTabs.includes(hash) ? hash : 'tasks';
+  };
+  
+  const [activeTab, setActiveTab] = useState(getActiveTabFromHash);
+  
+  // Обновляем активную вкладку при изменении хеша
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '');
+    const validTabs = ['tasks', 'notes', 'payments', 'resources', 'stats'];
+    if (validTabs.includes(hash)) {
+      setActiveTab(hash);
+    }
+  }, [location]);
+  
+  // Обновляем хеш в URL при изменении вкладки
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    window.location.hash = value;
+  };
 
   if (!project) {
     return (
@@ -132,7 +157,7 @@ export default function ProjectDetailPage() {
 
       {/* Вкладки: Задачи, Заметки и Статистика */}
       <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-        <Tabs defaultValue="tasks" className="flex-1 flex flex-col overflow-hidden h-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col overflow-hidden h-full">
           <div className="flex-shrink-0 px-4 pt-3 pb-2 border-b bg-background/95 backdrop-blur-sm z-10">
             <TabsList className="inline-flex h-9 items-center justify-center rounded-lg bg-secondary border p-1">
               <TabsTrigger 

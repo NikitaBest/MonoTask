@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
+import { Link } from "wouter";
 import { useStore, ProjectResource } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Edit2, Trash2, Link as LinkIcon, Lock, FileText, ExternalLink, Copy, Eye, EyeOff, Search, ChevronDown, ChevronUp, Check } from "lucide-react";
+import { Plus, Edit2, Trash2, Link as LinkIcon, Lock, FileText, ExternalLink, Copy, Eye, EyeOff, Search, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -47,7 +48,6 @@ export function ProjectResources({ projectId }: ProjectResourcesProps) {
   const [copiedItems, setCopiedItems] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState("");
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [collapsedTypes, setCollapsedTypes] = useState<Record<string, boolean>>({});
 
   const resources = useMemo(() => {
     if (!allResources || !Array.isArray(allResources)) {
@@ -88,12 +88,6 @@ export function ProjectResources({ projectId }: ProjectResourcesProps) {
     return grouped;
   }, [filteredResources]);
 
-  const toggleTypeCollapse = (type: string) => {
-    setCollapsedTypes(prev => ({
-      ...prev,
-      [type]: !prev[type]
-    }));
-  };
 
   const truncateUrl = (url: string, maxLength: number = 50) => {
     if (url.length <= maxLength) return url;
@@ -151,7 +145,7 @@ export function ProjectResources({ projectId }: ProjectResourcesProps) {
   };
 
   return (
-    <div className="p-4 md:p-6 w-full space-y-6 overflow-y-auto h-full">
+    <div className="p-4 md:p-6 w-full space-y-6 flex flex-col h-full">
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <LinkIcon className="h-8 w-8 text-primary" />
@@ -218,45 +212,50 @@ export function ProjectResources({ projectId }: ProjectResourcesProps) {
           <p className="text-sm">Попробуйте изменить параметры поиска</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {Object.keys(resourcesByType).map((type) => {
-            if (resourcesByType[type].length === 0) return null;
-            const isCollapsed = collapsedTypes[type];
-            
-            return (
-              <div key={type} className="space-y-3">
-                <button
-                  onClick={() => toggleTypeCollapse(type)}
-                  className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-secondary/50 transition-colors text-left"
+        <div className="flex-1 overflow-x-auto overflow-y-hidden px-2 py-4 scrollbar-hide min-h-0">
+          <div className="flex gap-4 min-w-max h-full">
+            {Object.keys(resourceTypeLabels).map((type) => {
+              const typeResources = resourcesByType[type] || [];
+              
+              return (
+                <div
+                  key={type}
+                  className="flex flex-col w-80 flex-shrink-0 rounded-lg border bg-card shadow-sm h-full"
                 >
-                  <div className="flex items-center gap-2 flex-1">
-                    {resourceTypeIcons[type]}
-                    <h2 className="text-lg font-semibold">{resourceTypeLabels[type]}</h2>
-                    <Badge variant="outline" className="ml-2">
-                      {resourcesByType[type].length}
-                    </Badge>
+                  {/* Заголовок колонки */}
+                  <div className="p-3 border-b bg-muted/30 flex-shrink-0">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {resourceTypeIcons[type]}
+                        <h3 className="font-semibold text-sm text-foreground">{resourceTypeLabels[type]}</h3>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {typeResources.length}
+                      </Badge>
+                    </div>
                   </div>
-                  {isCollapsed ? (
-                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                  )}
-                </button>
-                
-                {!isCollapsed && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                    {resourcesByType[type].map((resource) => (
-                      <Card 
-                        key={resource.id} 
-                        className={cn(
-                          "group relative hover:shadow-md transition-all border-l-4",
-                          resource.type === 'link' && "border-l-blue-500",
-                          resource.type === 'credentials' && "border-l-orange-500",
-                          resource.type === 'note' && "border-l-green-500",
-                          resource.type === 'file' && "border-l-purple-500"
-                        )}
-                      >
-                        <CardContent className="p-4">
+
+                  {/* Список ресурсов */}
+                  <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0 scrollbar-hide">
+                    {typeResources.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-32 text-muted-foreground border-2 border-dashed rounded-lg">
+                        <p className="text-xs text-center px-4">
+                          Нет ресурсов
+                        </p>
+                      </div>
+                    ) : (
+                      typeResources.map((resource) => (
+                        <Link key={resource.id} href={`/projects/${projectId}/resources/${resource.id}`}>
+                          <Card 
+                            className={cn(
+                              "group relative hover:shadow-md transition-all border-l-4 cursor-pointer",
+                              resource.type === 'link' && "border-l-blue-500",
+                              resource.type === 'credentials' && "border-l-orange-500",
+                              resource.type === 'note' && "border-l-green-500",
+                              resource.type === 'file' && "border-l-purple-500"
+                            )}
+                          >
+                            <CardContent className="p-4">
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 space-y-2 min-w-0">
                               <div className="flex items-start gap-2">
@@ -287,7 +286,10 @@ export function ProjectResources({ projectId }: ProjectResourcesProps) {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground hover:underline"
-                                  onClick={(e) => e.stopPropagation()}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    // Не предотвращаем переход по ссылке на файл
+                                  }}
                                 >
                                   <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
                                   <span>Открыть файл</span>
@@ -306,6 +308,7 @@ export function ProjectResources({ projectId }: ProjectResourcesProps) {
                                         className="h-5 w-5"
                                         onClick={(e) => {
                                           e.stopPropagation();
+                                          e.preventDefault();
                                           handleCopyToClipboard(resource.username!, `${resource.id}-username`, "Логин");
                                         }}
                                         title="Копировать логин"
@@ -330,6 +333,7 @@ export function ProjectResources({ projectId }: ProjectResourcesProps) {
                                         className="h-5 w-5"
                                         onClick={(e) => {
                                           e.stopPropagation();
+                                          e.preventDefault();
                                           togglePasswordVisibility(resource.id);
                                         }}
                                         title={visiblePasswords[resource.id] ? "Скрыть пароль" : "Показать пароль"}
@@ -346,6 +350,7 @@ export function ProjectResources({ projectId }: ProjectResourcesProps) {
                                         className="h-5 w-5"
                                         onClick={(e) => {
                                           e.stopPropagation();
+                                          e.preventDefault();
                                           handleCopyToClipboard(resource.password!, `${resource.id}-password`, "Пароль");
                                         }}
                                         title="Копировать пароль"
@@ -364,7 +369,10 @@ export function ProjectResources({ projectId }: ProjectResourcesProps) {
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:underline"
-                                      onClick={(e) => e.stopPropagation()}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        // Не предотвращаем переход по ссылке
+                                      }}
                                     >
                                       <LinkIcon className="w-3.5 h-3.5" />
                                       <span>Открыть</span>
@@ -396,33 +404,48 @@ export function ProjectResources({ projectId }: ProjectResourcesProps) {
                                   variant="ghost" 
                                   size="icon" 
                                   className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  onClick={(e) => e.stopPropagation()}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                  }}
                                 >
                                   <Edit2 className="h-3.5 w-3.5" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleEditResource(resource)}>
+                                <DropdownMenuItem 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    handleEditResource(resource);
+                                  }}
+                                >
                                   <Edit2 className="mr-2 h-4 w-4" /> Редактировать
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem 
                                   className="text-destructive focus:text-destructive"
-                                  onClick={() => handleDeleteResource(resource.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    handleDeleteResource(resource.id);
+                                  }}
                                 >
                                   <Trash2 className="mr-2 h-4 w-4" /> Удалить
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                        </Link>
+                      ))
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
