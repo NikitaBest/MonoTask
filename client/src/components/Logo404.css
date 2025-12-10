@@ -1,0 +1,148 @@
+.logo-404 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  margin-top: 24px;
+}
+
+.logo-404__digit {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-404__digit-image {
+  width: 42px;
+  height: 46px;
+  display: block;
+  object-fit: contain;
+  position: relative;
+  z-index: 0;
+}
+
+/* Квадрат над первой "4" (слева) */
+.logo-404__square--top {
+  position: absolute;
+  top: -54px; /* -42px (размер квадрата) - 12px (отступ) */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+/* Квадрат под второй "4" (справа) */
+.logo-404__square--bottom {
+  position: absolute;
+  bottom: -54px; /* -42px (размер квадрата) - 12px (отступ) */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.logo-404__square {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-404__square img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Анимация: квадрат над первой "4" катится вправо до второй "4" и обратно */
+.logo-404__square--top {
+  animation: logo404-square-right 3s ease-in-out infinite;
+}
+
+/* Анимация: квадрат под второй "4" катится влево до первой "4" и обратно */
+.logo-404__square--bottom {
+  animation: logo404-square-left 3s ease-in-out infinite;
+}
+
+/* Расстояние от центра первой "4" до центра второй "4": 
+   21px (половина первой "4") + 11px (gap) + 42px (ноль) + 11px (gap) + 21px (половина второй "4") = 106px */
+@keyframes logo404-square-right {
+  0%,
+  100% {
+    transform: translateX(-50%) rotate(0deg);
+  }
+
+  50% {
+    transform: translateX(calc(-50% + 106px)) rotate(360deg);
+  }
+}
+
+@keyframes logo404-square-left {
+  0%,
+  100% {
+    transform: translateX(-50%) rotate(0deg);
+  }
+
+  50% {
+    transform: translateX(calc(-50% - 106px)) rotate(-360deg);
+  }
+}
+
+@media (max-width: 480px) {
+  .logo-404 {
+    gap: 8px;
+    margin-top: 20px;
+  }
+
+  .logo-404__digit-image {
+    width: 35px;
+    height: 38px;
+  }
+
+  /* Квадрат над первой "4" (слева) - мобильная версия */
+  .logo-404__square--top {
+    top: -47px; /* -35px (размер квадрата) - 12px (отступ) */
+    width: 35px;
+    height: 35px;
+  }
+
+  /* Квадрат под второй "4" (справа) - мобильная версия */
+  .logo-404__square--bottom {
+    bottom: -47px; /* -35px (размер квадрата) - 12px (отступ) */
+    width: 35px;
+    height: 35px;
+  }
+
+  /* Расстояние от центра первой "4" до центра второй "4" для мобильных:
+     17.5px (половина первой "4") + 8px (gap) + 35px (ноль) + 8px (gap) + 17.5px (половина второй "4") = 86px */
+  @keyframes logo404-square-right {
+    0%,
+    100% {
+      transform: translateX(-50%) rotate(0deg);
+    }
+
+    50% {
+      transform: translateX(calc(-50% + 86px)) rotate(360deg);
+    }
+  }
+
+  @keyframes logo404-square-left {
+    0%,
+    100% {
+      transform: translateX(-50%) rotate(0deg);
+    }
+
+    50% {
+      transform: translateX(calc(-50% - 86px)) rotate(-360deg);
+    }
+  }
+}
+
