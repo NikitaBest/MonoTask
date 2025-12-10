@@ -205,9 +205,7 @@ export default function ProjectDetailPage() {
           </TabsContent>
 
           <TabsContent value="notes" className="flex-1 overflow-y-auto px-4 py-4 mt-0">
-            <div className="max-w-4xl mx-auto">
-              <ProjectNotes projectId={projectId!} />
-            </div>
+            <ProjectNotes projectId={projectId!} />
           </TabsContent>
 
           <TabsContent value="payments" className="flex-1 overflow-hidden mt-0 h-full">
