@@ -126,9 +126,9 @@ export function NotesView() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredNotes.map((note) => (
-              <Link key={note.id} href={`/notes/${note.id}`}>
+              <Link key={note.id} href={`/notes/${note.id}`} className="h-full">
                 <Card 
-                  className="group relative flex flex-col hover:shadow-md transition-all cursor-pointer"
+                  className="group relative flex flex-col h-full hover:shadow-md transition-all cursor-pointer"
                 >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-2">
@@ -170,8 +170,8 @@ export function NotesView() {
                   </div>
                 </CardHeader>
 
-                <CardContent className="flex-1 flex flex-col gap-3">
-                  <div className="text-sm text-muted-foreground line-clamp-4 flex-1">
+                <CardContent className="flex-1 flex flex-col gap-3 min-h-0">
+                  <div className="text-sm text-muted-foreground line-clamp-4 flex-1 min-h-0">
                     {note.content || "Нет содержимого"}
                   </div>
                   
