@@ -1,14 +1,14 @@
 import { Link, useLocation } from "wouter";
-import { Calendar, FileText, PieChart, Settings, FolderKanban } from "lucide-react";
+import { FileText, PieChart, Settings, FolderKanban, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
 
   const navItems = [
-    { icon: Calendar, label: "Календарь", href: "/" },
+    { icon: FolderKanban, label: "Проекты", href: "/" },
+    { icon: Calendar, label: "Календарь", href: "/calendar" },
     { icon: FileText, label: "Заметки", href: "/list" },
-    { icon: FolderKanban, label: "Проекты", href: "/projects" },
     { icon: Settings, label: "Настройки", href: "/settings" },
   ];
 
@@ -23,7 +23,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
         <nav className="flex-1 px-2 space-y-2">
           {navItems.map((item) => {
-            const isActive = location === item.href || (item.href === "/projects" && location?.startsWith("/projects"));
+            const isActive = location === item.href || 
+              (item.href === "/projects" && location?.startsWith("/projects")) ||
+              (item.href === "/calendar" && location?.startsWith("/calendar"));
             return (
               <Link 
                 key={item.href} 

@@ -57,7 +57,7 @@ export interface CalendarEvent {
   startTime: string; // HH:mm
   endTime?: string; // HH:mm (опционально для напоминаний)
   description?: string;
-  type: 'reminder' | 'meeting' | 'call' | 'task'; // Тип события
+  type: 'call' | 'workout' | 'work' | 'development' | 'meeting' | 'reminder' | 'other'; // Тип события
   color?: string; // Цвет для визуального отличия
   createdAt: number;
 }
