@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useStore, Note } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 const noteSchema = z.object({
   title: z.string().min(1, "Название обязательно"),
@@ -26,6 +27,9 @@ interface NoteFormProps {
 export function NoteForm({ open, onOpenChange, noteToEdit }: NoteFormProps) {
   const addNote = useStore((state) => state.addNote);
   const updateNote = useStore((state) => state.updateNote);
+  const getAllTags = useStore((state) => state.getAllTags);
+  
+  const existingTags = useMemo(() => getAllTags(), [getAllTags]);
   
   const form = useForm<z.infer<typeof noteSchema>>({
     resolver: zodResolver(noteSchema),
@@ -35,6 +39,11 @@ export function NoteForm({ open, onOpenChange, noteToEdit }: NoteFormProps) {
       tags: "",
     },
   });
+  
+  const currentTags = useMemo(() => {
+    const tagsString = form.watch("tags");
+    return tagsString ? tagsString.split(",").map(t => t.trim()).filter(Boolean) : [];
+  }, [form.watch("tags")]);
 
   useEffect(() => {
     if (open) {
@@ -112,7 +121,7 @@ export function NoteForm({ open, onOpenChange, noteToEdit }: NoteFormProps) {
 
           <div className="space-y-2 flex-shrink-0">
             <Label htmlFor="tags" className="flex items-center gap-2">
-              <Tag className="w-4 h-4" /> Теги (через запятую)
+              <Tag className="w-4 h-4" /> Теги
             </Label>
             <Input 
               id="tags"
@@ -120,8 +129,78 @@ export function NoteForm({ open, onOpenChange, noteToEdit }: NoteFormProps) {
               {...form.register("tags")} 
             />
             <p className="text-xs text-muted-foreground">
-              Добавьте теги для удобной категоризации заметок
+              Добавьте теги для удобной категоризации заметок. Введите через запятую или выберите из существующих.
             </p>
+            
+            {existingTags.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-medium">Существующие теги:</p>
+                <div className="flex flex-wrap gap-2">
+                  {existingTags.map((tag) => {
+                    const isSelected = currentTags.includes(tag);
+                    return (
+                      <Badge
+                        key={tag}
+                        variant={isSelected ? "default" : "outline"}
+                        className={cn(
+                          "cursor-pointer transition-colors",
+                          isSelected && "bg-primary text-primary-foreground"
+                        )}
+                        onClick={() => {
+                          const currentTagsString = form.getValues("tags");
+                          const tagsArray = currentTagsString 
+                            ? currentTagsString.split(",").map(t => t.trim()).filter(Boolean)
+                            : [];
+                          
+                          if (isSelected) {
+                            // Удаляем тег
+                            const newTags = tagsArray.filter(t => t !== tag);
+                            form.setValue("tags", newTags.join(", "));
+                          } else {
+                            // Добавляем тег
+                            const newTags = [...tagsArray, tag];
+                            form.setValue("tags", newTags.join(", "));
+                          }
+                        }}
+                      >
+                        <Tag className="w-3 h-3 mr-1" />
+                        {tag}
+                        {isSelected && <X className="w-3 h-3 ml-1" />}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            
+            {currentTags.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-medium">Выбранные теги:</p>
+                <div className="flex flex-wrap gap-2">
+                  {currentTags.map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="default"
+                      className="bg-primary text-primary-foreground"
+                    >
+                      <Tag className="w-3 h-3 mr-1" />
+                      {tag}
+                      <X 
+                        className="w-3 h-3 ml-1 cursor-pointer hover:bg-primary/80 rounded-full"
+                        onClick={() => {
+                          const currentTagsString = form.getValues("tags");
+                          const tagsArray = currentTagsString 
+                            ? currentTagsString.split(",").map(t => t.trim()).filter(Boolean)
+                            : [];
+                          const newTags = tagsArray.filter(t => t !== tag);
+                          form.setValue("tags", newTags.join(", "));
+                        }}
+                      />
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <DialogFooter className="flex-shrink-0">
