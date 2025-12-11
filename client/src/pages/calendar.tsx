@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useStore, CalendarEvent } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EventForm } from "@/components/event-form";
-import { Plus, Calendar as CalendarIcon, Clock, Phone, Dumbbell, Briefcase, BookOpen, Users, Bell, MoreHorizontal, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Clock, Phone, Dumbbell, Briefcase, BookOpen, Users, Bell, MoreHorizontal, ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday, addWeeks, subWeeks, startOfDay, parseISO, addMonths } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Link } from "wouter";
@@ -63,8 +63,8 @@ function DayView({ selectedDate, events }: { selectedDate: Date; events: Calenda
   }, [selectedDate, events]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="h-full flex flex-col space-y-4 min-h-0">
+      <div className="flex items-center justify-between flex-shrink-0">
         <h2 className="text-2xl font-bold">
           {format(selectedDate, "d MMMM yyyy", { locale: ru })}
         </h2>
@@ -75,31 +75,30 @@ function DayView({ selectedDate, events }: { selectedDate: Date; events: Calenda
         </Link>
       </div>
 
-      {dayEvents.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center text-muted-foreground">
-            <CalendarIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium">Нет событий на этот день</p>
-            <p className="text-sm">Создайте новое событие, чтобы начать планирование</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          {dayEvents.map((event) => (
-            <EventCard key={event.id} event={event} />
-          ))}
-        </div>
-      )}
+      <div className="flex-1 overflow-y-auto min-h-0">
+        {dayEvents.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center text-muted-foreground">
+              <CalendarIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium">Нет событий на этот день</p>
+              <p className="text-sm">Создайте новое событие, чтобы начать планирование</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {dayEvents.map((event) => (
+              <EventCard key={event.id} event={event} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 function WeekView({ selectedDate, events }: { selectedDate: Date; events: CalendarEvent[] }) {
-  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
-  const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
-  const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
-
   const [currentWeek, setCurrentWeek] = useState(selectedDate);
+  const [selectedDay, setSelectedDay] = useState<Date>(selectedDate);
 
   const weekStartDate = startOfWeek(currentWeek, { weekStartsOn: 1 });
   const weekEndDate = endOfWeek(currentWeek, { weekStartsOn: 1 });
@@ -110,12 +109,20 @@ function WeekView({ selectedDate, events }: { selectedDate: Date; events: Calend
       const dateStr = format(day, "yyyy-MM-dd");
       return {
         day,
+        dateStr,
         events: events
           .filter((e) => e.date === dateStr)
           .sort((a, b) => a.startTime.localeCompare(b.startTime)),
       };
     });
   }, [currentWeekDays, events]);
+
+  const selectedDayEvents = useMemo(() => {
+    const dateStr = format(selectedDay, "yyyy-MM-dd");
+    return events
+      .filter((e) => e.date === dateStr)
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+  }, [selectedDay, events]);
 
   const goToPreviousWeek = () => {
     setCurrentWeek(subWeeks(currentWeek, 1));
@@ -126,12 +133,24 @@ function WeekView({ selectedDate, events }: { selectedDate: Date; events: Calend
   };
 
   const goToToday = () => {
-    setCurrentWeek(new Date());
+    const today = new Date();
+    setCurrentWeek(today);
+    setSelectedDay(today);
   };
 
+  // Обновляем выбранный день при изменении недели, если выбранный день не в текущей неделе
+  useEffect(() => {
+    const selectedDayInWeek = currentWeekDays.find(
+      (day) => format(day, "yyyy-MM-dd") === format(selectedDay, "yyyy-MM-dd")
+    );
+    if (!selectedDayInWeek) {
+      setSelectedDay(currentWeekDays[0]);
+    }
+  }, [currentWeekDays, selectedDay]);
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="h-full flex flex-col space-y-4 min-h-0">
+      <div className="flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={goToPreviousWeek}>
             <ChevronLeft className="w-4 h-4" />
@@ -148,63 +167,137 @@ function WeekView({ selectedDate, events }: { selectedDate: Date; events: Calend
         </Button>
       </div>
 
-      <div className="grid grid-cols-7 gap-2">
-        {weekEvents.map(({ day, events: dayEvents }) => {
-          const dateStr = format(day, "yyyy-MM-dd");
-          const isCurrentDay = isToday(day);
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4 overflow-hidden min-h-0">
+        {/* Левая колонка: дни недели */}
+        <div className="lg:col-span-1 space-y-2 overflow-y-auto min-h-0 pr-2 pl-1">
+          {weekEvents.map(({ day, dateStr, events: dayEvents }) => {
+            const isCurrentDay = isToday(day);
+            const isSelected = format(day, "yyyy-MM-dd") === format(selectedDay, "yyyy-MM-dd");
 
-          return (
-            <Card key={dateStr} className={cn("flex flex-col", isCurrentDay && "ring-2 ring-primary")}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center justify-between">
-                  <span className={cn(isCurrentDay && "text-primary font-bold")}>
-                    {format(day, "EEE", { locale: ru })}
-                  </span>
-                  <span className={cn(
-                    "text-xs px-2 py-0.5 rounded-full",
-                    isCurrentDay ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
-                  )}>
-                    {format(day, "d")}
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 p-2 space-y-1 overflow-y-auto max-h-[400px]">
-                {dayEvents.length === 0 ? (
-                  <div className="text-xs text-muted-foreground text-center py-4">
-                    Нет событий
+            return (
+              <Card
+                key={dateStr}
+                className={cn(
+                  "cursor-pointer transition-all hover:shadow-md",
+                  isSelected && "bg-primary/5 shadow-[inset_0_0_0_2px_hsl(var(--primary))]",
+                  isCurrentDay && !isSelected && "bg-primary/5 shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.5)]"
+                )}
+                onClick={() => setSelectedDay(day)}
+              >
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          "text-sm font-medium",
+                          isSelected && "text-primary font-bold",
+                          isCurrentDay && !isSelected && "text-primary"
+                        )}>
+                          {format(day, "EEE", { locale: ru })}
+                        </span>
+                        {isCurrentDay && (
+                          <Badge variant="outline" className="text-xs">
+                            Сегодня
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={cn(
+                          "text-lg font-bold",
+                          isSelected && "text-primary"
+                        )}>
+                          {format(day, "d")}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {format(day, "MMMM", { locale: ru })}
+                        </span>
+                      </div>
+                    </div>
+                    {dayEvents.length > 0 && (
+                      <Badge 
+                        variant="secondary" 
+                        className={cn(
+                          "ml-2",
+                          isSelected && "bg-primary text-primary-foreground"
+                        )}
+                      >
+                        {dayEvents.length}
+                      </Badge>
+                    )}
                   </div>
-                ) : (
-                  dayEvents.slice(0, 3).map((event) => {
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Правая колонка: события выбранного дня */}
+        <div className="lg:col-span-3 flex flex-col min-h-0 overflow-hidden">
+          <Card className="flex flex-col h-full min-h-0">
+            <CardHeader className="flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <CalendarIcon className="h-5 w-5" />
+                  {format(selectedDay, "d MMMM yyyy", { locale: ru })}
+                </CardTitle>
+                <Link href={`/calendar/${format(selectedDay, "yyyy-MM-dd")}`}>
+                  <Button variant="outline" size="sm">
+                    Подробнее <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent className="flex-1 overflow-y-auto min-h-0">
+              {selectedDayEvents.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <CalendarIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">Нет событий на этот день</p>
+                  <p className="text-sm mt-1">Выберите другой день или создайте новое событие</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {selectedDayEvents.map((event) => {
                     const config = eventTypeConfig[event.type] || eventTypeConfig.other;
+                    const Icon = config.icon;
                     return (
-                      <Link key={event.id} href={`/calendar/${dateStr}`}>
-                        <div
-                          className={cn(
-                            "text-xs p-1.5 rounded border cursor-pointer hover:shadow-sm transition-all",
-                            config.color
-                          )}
-                        >
-                          <div className="font-medium truncate">{event.title}</div>
-                          <div className="text-[10px] opacity-75 mt-0.5">
-                            {event.startTime}
-                            {event.endTime && `-${event.endTime}`}
-                          </div>
-                        </div>
+                      <Link key={event.id} href={`/calendar/${format(selectedDay, "yyyy-MM-dd")}`}>
+                        <Card className="hover:shadow-md transition-all cursor-pointer group">
+                          <CardContent className="p-4">
+                            <div className="flex items-start gap-4">
+                              <div className={cn("p-3 rounded-lg border flex-shrink-0", config.color)}>
+                                <Icon className="w-5 h-5" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-lg mb-1">{event.title}</h4>
+                                <div className="flex items-center gap-4 flex-wrap">
+                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Clock className="w-4 h-4" />
+                                    <span>
+                                      {event.startTime}
+                                      {event.endTime && ` - ${event.endTime}`}
+                                    </span>
+                                  </div>
+                                  <Badge variant="outline" className={cn("capitalize", config.color)}>
+                                    {config.label}
+                                  </Badge>
+                                </div>
+                                {event.description && (
+                                  <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap">
+                                    {event.description}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
                       </Link>
                     );
-                  })
-                )}
-                {dayEvents.length > 3 && (
-                  <Link href={`/calendar/${dateStr}`}>
-                    <div className="text-xs text-center text-muted-foreground py-1 hover:text-foreground transition-colors">
-                      +{dayEvents.length - 3} еще
-                    </div>
-                  </Link>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
@@ -255,8 +348,8 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4 overflow-hidden">
-        <div className="lg:col-span-1 flex flex-col gap-3 overflow-y-auto">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4 overflow-hidden min-h-0">
+        <div className="lg:col-span-1 flex flex-col gap-3 overflow-y-auto min-h-0">
           <div className="bg-card border rounded-lg p-2 flex-shrink-0 w-fit">
             <Calendar
               mode="single"
@@ -363,7 +456,7 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        <div className="lg:col-span-3 overflow-y-auto pr-2">
+        <div className="lg:col-span-3 overflow-y-auto pr-2 min-h-0">
           {view === "day" ? (
             <DayView selectedDate={selectedDate} events={events} />
           ) : (
