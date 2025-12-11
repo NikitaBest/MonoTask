@@ -13,7 +13,10 @@ import {
   XAxis,
   YAxis
 } from "recharts";
-import { CheckCircle2, Circle, Clock, XCircle, TrendingUp } from "lucide-react";
+import { CheckCircle2, Circle, Clock, XCircle, TrendingUp, AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Link } from "wouter";
+import { cn } from "@/lib/utils";
 
 interface ProjectStatsProps {
   projectId: string;
@@ -22,6 +25,7 @@ interface ProjectStatsProps {
 export function ProjectStats({ projectId }: ProjectStatsProps) {
   const allTasks = useStore((state) => state.tasks);
   const getTotalTimeForProject = useStore((state) => state.getTotalTimeForProject);
+  const getTotalTimeForTask = useStore((state) => state.getTotalTimeForTask);
   
   const tasks = useMemo(() => 
     allTasks.filter((t) => t.projectId === projectId),
@@ -39,6 +43,41 @@ export function ProjectStats({ projectId }: ProjectStatsProps) {
   const totalTimeMs = getTotalTimeForProject(projectId);
   const totalHours = Math.floor(totalTimeMs / (1000 * 60 * 60));
   const totalMinutes = Math.floor((totalTimeMs % (1000 * 60 * 60)) / (1000 * 60));
+
+  // Задачи с превышением оценочного времени
+  const tasksExceedingTime = useMemo(() => {
+    return tasks
+      .filter((task) => {
+        // Проверяем только задачи с оценочным временем
+        if (!task.estimatedTime || task.estimatedTime === 0) return false;
+        
+        // Получаем фактическое время в миллисекундах
+        const actualTimeMs = getTotalTimeForTask(task.id);
+        // Конвертируем оценочное время из минут в миллисекунды
+        const estimatedTimeMs = task.estimatedTime * 60 * 1000;
+        
+        // Возвращаем задачи, где фактическое время превысило оценочное
+        return actualTimeMs > estimatedTimeMs;
+      })
+      .map((task) => {
+        const actualTimeMs = getTotalTimeForTask(task.id);
+        const estimatedTimeMs = task.estimatedTime! * 60 * 1000;
+        const exceededTimeMs = actualTimeMs - estimatedTimeMs;
+        
+        const actualMinutes = Math.floor(actualTimeMs / (1000 * 60));
+        const estimatedMinutes = task.estimatedTime!;
+        const exceededMinutes = Math.floor(exceededTimeMs / (1000 * 60));
+        
+        return {
+          task,
+          actualMinutes,
+          estimatedMinutes,
+          exceededMinutes,
+          exceededPercent: Math.round((exceededTimeMs / estimatedTimeMs) * 100),
+        };
+      })
+      .sort((a, b) => b.exceededPercent - a.exceededPercent); // Сортируем по проценту превышения
+  }, [tasks, getTotalTimeForTask]);
 
   const statusData = [
     { name: 'Запланировано', value: plannedTasks, color: '#94a3b8' }, // Slate gray
@@ -186,6 +225,77 @@ export function ProjectStats({ projectId }: ProjectStatsProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Задачи с превышением времени */}
+      {tasksExceedingTime.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              Задачи с превышением оценочного времени
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Задачи, у которых фактическое время выполнения превысило оценочное время
+            </p>
+            <div className="space-y-3">
+              {tasksExceedingTime.map(({ task, actualMinutes, estimatedMinutes, exceededMinutes, exceededPercent }) => {
+                const actualHours = Math.floor(actualMinutes / 60);
+                const actualMins = actualMinutes % 60;
+                const estimatedHours = Math.floor(estimatedMinutes / 60);
+                const estimatedMins = estimatedMinutes % 60;
+                const exceededHours = Math.floor(exceededMinutes / 60);
+                const exceededMins = exceededMinutes % 60;
+
+                return (
+                  <Link key={task.id} href={`/projects/${projectId}`}>
+                    <div className="p-4 border rounded-lg hover:bg-secondary/50 transition-colors cursor-pointer">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-base mb-2">{task.title}</h4>
+                          <div className="flex flex-wrap items-center gap-4 text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground">Оценка:</span>
+                              <span className="font-medium">
+                                {estimatedHours > 0 && `${estimatedHours}ч `}{estimatedMins}м
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground">Фактически:</span>
+                              <span className="font-medium text-orange-600 dark:text-orange-400">
+                                {actualHours > 0 && `${actualHours}ч `}{actualMins}м
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground">Превышение:</span>
+                              <Badge variant="destructive" className="font-medium">
+                                +{exceededHours > 0 && `${exceededHours}ч `}{exceededMins}м ({exceededPercent}%)
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                        <Badge 
+                          variant="outline" 
+                          className={cn(
+                            task.status === 'completed' && "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800",
+                            task.status === 'in-progress' && "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800",
+                            task.status === 'planned' && "bg-gray-50 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400 border-gray-200 dark:border-gray-800"
+                          )}
+                        >
+                          {task.status === 'completed' ? 'Выполнено' : 
+                           task.status === 'in-progress' ? 'В работе' : 
+                           task.status === 'planned' ? 'Запланировано' : 'Отменено'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
