@@ -95,6 +95,7 @@ function WeekEventCard({ event, dateStr }: { event: CalendarEvent; dateStr: stri
   const config = eventTypeConfig[event.type] || eventTypeConfig.other;
   const Icon = config.icon;
   const [copied, setCopied] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleCopyLink = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -106,65 +107,107 @@ function WeekEventCard({ event, dateStr }: { event: CalendarEvent; dateStr: stri
     }
   };
 
+  const handleDragStart = (e: React.DragEvent) => {
+    setIsDragging(true);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("eventId", event.id);
+    e.dataTransfer.setData("currentDate", event.date);
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // Предотвращаем переход по ссылке при начале перетаскивания
+    if (e.button === 0) {
+      // Левый клик - разрешаем перетаскивание
+      const target = e.target as HTMLElement;
+      // Если клик по ссылке или кнопке, не начинаем перетаскивание
+      if (target.closest('a') || target.closest('button')) {
+        return;
+      }
+    }
+  };
+
   return (
-    <Link href={`/calendar/${dateStr}`}>
-      <Card className="hover:shadow-md transition-all cursor-pointer group">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-4">
-            <div className={cn("p-3 rounded-lg border flex-shrink-0", config.color)}>
-              <Icon className="w-5 h-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="font-semibold text-lg mb-1">{event.title}</h4>
-              <div className="flex items-center gap-4 flex-wrap">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock className="w-4 h-4" />
-                  <span>
-                    {event.startTime}
-                    {event.endTime && ` - ${event.endTime}`}
-                  </span>
-                </div>
-                <Badge variant="outline" className={cn("capitalize", config.color)}>
-                  {config.label}
-                </Badge>
+    <div
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onMouseDown={handleMouseDown}
+      className={cn(
+        "transition-all",
+        isDragging ? "opacity-50 scale-95 cursor-grabbing" : "cursor-grab"
+      )}
+    >
+      <Link href={`/calendar/${dateStr}`} onClick={(e) => {
+        // Предотвращаем переход, если только что было перетаскивание
+        if (isDragging) {
+          e.preventDefault();
+        }
+      }}>
+        <Card className={cn(
+          "hover:shadow-md transition-all group",
+          isDragging && "shadow-lg border-primary"
+        )}>
+          <CardContent className="p-4">
+            <div className="flex items-start gap-4">
+              <div className={cn("p-3 rounded-lg border flex-shrink-0", config.color)}>
+                <Icon className="w-5 h-5" />
               </div>
-              {event.description && (
-                <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap">
-                  {event.description}
-                </p>
-              )}
-              {event.url && (
-                <div className="flex items-center gap-2 mt-3 p-2 bg-secondary rounded-lg">
-                  <LinkIcon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  <a
-                    href={event.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-sm text-primary hover:underline truncate flex-1 min-w-0"
-                  >
-                    {event.url}
-                  </a>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={handleCopyLink}
-                    title="Копировать ссылку"
-                  >
-                    {copied ? (
-                      <Check className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
-                    )}
-                  </Button>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-lg mb-1">{event.title}</h4>
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="w-4 h-4" />
+                    <span>
+                      {event.startTime}
+                      {event.endTime && ` - ${event.endTime}`}
+                    </span>
+                  </div>
+                  <Badge variant="outline" className={cn("capitalize", config.color)}>
+                    {config.label}
+                  </Badge>
                 </div>
-              )}
+                {event.description && (
+                  <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap">
+                    {event.description}
+                  </p>
+                )}
+                {event.url && (
+                  <div className="flex items-center gap-2 mt-3 p-2 bg-secondary rounded-lg">
+                    <LinkIcon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <a
+                      href={event.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-sm text-primary hover:underline truncate flex-1 min-w-0"
+                    >
+                      {event.url}
+                    </a>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={handleCopyLink}
+                      title="Копировать ссылку"
+                    >
+                      {copied ? (
+                        <Check className="w-4 h-4 text-green-500" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
+          </CardContent>
+        </Card>
+      </Link>
+    </div>
   );
 }
 
@@ -213,6 +256,8 @@ function DayView({ selectedDate, events }: { selectedDate: Date; events: Calenda
 function WeekView({ selectedDate, events }: { selectedDate: Date; events: CalendarEvent[] }) {
   const [currentWeek, setCurrentWeek] = useState(selectedDate);
   const [selectedDay, setSelectedDay] = useState<Date>(selectedDate);
+  const [draggedOverDate, setDraggedOverDate] = useState<string | null>(null);
+  const updateEvent = useStore((state) => state.updateEvent);
 
   const weekStartDate = startOfWeek(currentWeek, { weekStartsOn: 1 });
   const weekEndDate = endOfWeek(currentWeek, { weekStartsOn: 1 });
@@ -252,6 +297,35 @@ function WeekView({ selectedDate, events }: { selectedDate: Date; events: Calend
     setSelectedDay(today);
   };
 
+  const handleDragOver = (e: React.DragEvent, dateStr: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDraggedOverDate(dateStr);
+  };
+
+  const handleDragLeave = () => {
+    setDraggedOverDate(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetDateStr: string) => {
+    e.preventDefault();
+    setDraggedOverDate(null);
+    
+    const eventId = e.dataTransfer.getData("eventId");
+    const currentDate = e.dataTransfer.getData("currentDate");
+    
+    if (eventId && targetDateStr !== currentDate) {
+      updateEvent(eventId, { date: targetDateStr });
+      // Обновляем выбранный день на день, куда переместили событие
+      const targetDay = currentWeekDays.find(
+        (day) => format(day, "yyyy-MM-dd") === targetDateStr
+      );
+      if (targetDay) {
+        setSelectedDay(targetDay);
+      }
+    }
+  };
+
   // Обновляем выбранный день при изменении недели, если выбранный день не в текущей неделе
   useEffect(() => {
     const selectedDayInWeek = currentWeekDays.find(
@@ -287,6 +361,7 @@ function WeekView({ selectedDate, events }: { selectedDate: Date; events: Calend
           {weekEvents.map(({ day, dateStr, events: dayEvents }) => {
             const isCurrentDay = isToday(day);
             const isSelected = format(day, "yyyy-MM-dd") === format(selectedDay, "yyyy-MM-dd");
+            const isDraggedOver = draggedOverDate === dateStr;
 
             return (
               <Card
@@ -294,9 +369,13 @@ function WeekView({ selectedDate, events }: { selectedDate: Date; events: Calend
                 className={cn(
                   "cursor-pointer transition-all hover:shadow-md",
                   isSelected && "bg-primary/5 shadow-[inset_0_0_0_2px_hsl(var(--primary))]",
-                  isCurrentDay && !isSelected && "bg-primary/5 shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.5)]"
+                  isCurrentDay && !isSelected && "bg-primary/5 shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.5)]",
+                  isDraggedOver && "bg-primary/10 border-2 border-primary border-dashed shadow-lg scale-105"
                 )}
                 onClick={() => setSelectedDay(day)}
+                onDragOver={(e) => handleDragOver(e, dateStr)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, dateStr)}
               >
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between">
