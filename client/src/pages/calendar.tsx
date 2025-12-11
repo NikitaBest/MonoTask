@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EventForm } from "@/components/event-form";
-import { Plus, Calendar as CalendarIcon, Clock, Phone, Dumbbell, Briefcase, BookOpen, Users, Bell, MoreHorizontal, ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Clock, Phone, Dumbbell, Briefcase, BookOpen, Users, Bell, MoreHorizontal, ChevronLeft, ChevronRight, ArrowRight, Link as LinkIcon, Copy, Check } from "lucide-react";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday, addWeeks, subWeeks, startOfDay, parseISO, addMonths } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Link } from "wouter";
@@ -25,6 +25,17 @@ const eventTypeConfig = {
 function EventCard({ event }: { event: CalendarEvent }) {
   const config = eventTypeConfig[event.type] || eventTypeConfig.other;
   const Icon = config.icon;
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (event.url) {
+      navigator.clipboard.writeText(event.url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   return (
     <Link href={`/calendar/${event.date}`}>
@@ -45,6 +56,109 @@ function EventCard({ event }: { event: CalendarEvent }) {
               </div>
               {event.description && (
                 <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{event.description}</p>
+              )}
+              {event.url && (
+                <div className="flex items-center gap-2 mt-2">
+                  <a
+                    href={event.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-xs text-primary hover:underline truncate flex-1 min-w-0"
+                  >
+                    <LinkIcon className="w-3 h-3 inline mr-1" />
+                    {event.url}
+                  </a>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={handleCopyLink}
+                  >
+                    {copied ? (
+                      <Check className="w-3 h-3 text-green-500" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
+function WeekEventCard({ event, dateStr }: { event: CalendarEvent; dateStr: string }) {
+  const config = eventTypeConfig[event.type] || eventTypeConfig.other;
+  const Icon = config.icon;
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (event.url) {
+      navigator.clipboard.writeText(event.url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <Link href={`/calendar/${dateStr}`}>
+      <Card className="hover:shadow-md transition-all cursor-pointer group">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-4">
+            <div className={cn("p-3 rounded-lg border flex-shrink-0", config.color)}>
+              <Icon className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="font-semibold text-lg mb-1">{event.title}</h4>
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="w-4 h-4" />
+                  <span>
+                    {event.startTime}
+                    {event.endTime && ` - ${event.endTime}`}
+                  </span>
+                </div>
+                <Badge variant="outline" className={cn("capitalize", config.color)}>
+                  {config.label}
+                </Badge>
+              </div>
+              {event.description && (
+                <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap">
+                  {event.description}
+                </p>
+              )}
+              {event.url && (
+                <div className="flex items-center gap-2 mt-3 p-2 bg-secondary rounded-lg">
+                  <LinkIcon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <a
+                    href={event.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-sm text-primary hover:underline truncate flex-1 min-w-0"
+                  >
+                    {event.url}
+                  </a>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={handleCopyLink}
+                    title="Копировать ссылку"
+                  >
+                    {copied ? (
+                      <Check className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
               )}
             </div>
           </div>
@@ -256,43 +370,13 @@ function WeekView({ selectedDate, events }: { selectedDate: Date; events: Calend
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {selectedDayEvents.map((event) => {
-                    const config = eventTypeConfig[event.type] || eventTypeConfig.other;
-                    const Icon = config.icon;
-                    return (
-                      <Link key={event.id} href={`/calendar/${format(selectedDay, "yyyy-MM-dd")}`}>
-                        <Card className="hover:shadow-md transition-all cursor-pointer group">
-                          <CardContent className="p-4">
-                            <div className="flex items-start gap-4">
-                              <div className={cn("p-3 rounded-lg border flex-shrink-0", config.color)}>
-                                <Icon className="w-5 h-5" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-lg mb-1">{event.title}</h4>
-                                <div className="flex items-center gap-4 flex-wrap">
-                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <Clock className="w-4 h-4" />
-                                    <span>
-                                      {event.startTime}
-                                      {event.endTime && ` - ${event.endTime}`}
-                                    </span>
-                                  </div>
-                                  <Badge variant="outline" className={cn("capitalize", config.color)}>
-                                    {config.label}
-                                  </Badge>
-                                </div>
-                                {event.description && (
-                                  <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap">
-                                    {event.description}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    );
-                  })}
+                  {selectedDayEvents.map((event) => (
+                    <WeekEventCard
+                      key={event.id}
+                      event={event}
+                      dateStr={format(selectedDay, "yyyy-MM-dd")}
+                    />
+                  ))}
                 </div>
               )}
             </CardContent>

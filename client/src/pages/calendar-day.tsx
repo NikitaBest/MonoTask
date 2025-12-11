@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EventForm } from "@/components/event-form";
-import { ArrowLeft, Plus, Edit2, Trash2, Clock, Phone, Dumbbell, Briefcase, BookOpen, Users, Bell, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, Plus, Edit2, Trash2, Clock, Phone, Dumbbell, Briefcase, BookOpen, Users, Bell, MoreHorizontal, Link as LinkIcon, Copy, Check } from "lucide-react";
 import { format, parseISO, isToday, isTomorrow, isYesterday } from "date-fns";
 import { ru } from "date-fns/locale";
 import { useState, useMemo } from "react";
@@ -40,6 +40,15 @@ const eventTypeConfig = {
 function EventCard({ event, onEdit, onDelete }: { event: CalendarEvent; onEdit: () => void; onDelete: () => void }) {
   const config = eventTypeConfig[event.type] || eventTypeConfig.other;
   const Icon = config.icon;
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = () => {
+    if (event.url) {
+      navigator.clipboard.writeText(event.url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   return (
     <Card className="group relative hover:shadow-md transition-all">
@@ -66,6 +75,32 @@ function EventCard({ event, onEdit, onDelete }: { event: CalendarEvent; onEdit: 
                 </div>
                 {event.description && (
                   <p className="text-sm text-muted-foreground mt-3 whitespace-pre-wrap">{event.description}</p>
+                )}
+                {event.url && (
+                  <div className="flex items-center gap-2 mt-3 p-2 bg-secondary rounded-lg">
+                    <LinkIcon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <a
+                      href={event.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline truncate flex-1 min-w-0"
+                    >
+                      {event.url}
+                    </a>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 flex-shrink-0"
+                      onClick={handleCopyLink}
+                      title="Копировать ссылку"
+                    >
+                      {copied ? (
+                        <Check className="w-4 h-4 text-green-500" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
                 )}
               </div>
               <DropdownMenu>

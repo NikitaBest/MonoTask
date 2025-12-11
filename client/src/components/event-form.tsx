@@ -4,7 +4,7 @@ import * as z from "zod";
 import { useEffect } from "react";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Calendar as CalendarIcon, Clock, Phone, Dumbbell, Briefcase, BookOpen, Users, Bell, MoreHorizontal } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Phone, Dumbbell, Briefcase, BookOpen, Users, Bell, MoreHorizontal, Link as LinkIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,17 @@ const eventSchema = z.object({
   startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Формат: HH:mm"),
   endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Формат: HH:mm").optional().or(z.literal("")),
   description: z.string().optional(),
+  url: z.string().optional().or(z.literal("")).refine((val) => {
+    if (!val || val === "") return true;
+    try {
+      new URL(val);
+      return true;
+    } catch {
+      return false;
+    }
+  }, {
+    message: "Неверный формат ссылки",
+  }),
   type: z.enum(["call", "workout", "work", "development", "meeting", "reminder", "other"] as const),
 });
 
@@ -54,6 +65,7 @@ export function EventForm({ open, onOpenChange, initialDate, eventToEdit }: Even
       startTime: "09:00",
       endTime: "",
       description: "",
+      url: "",
       type: "call",
     },
   });
@@ -67,6 +79,7 @@ export function EventForm({ open, onOpenChange, initialDate, eventToEdit }: Even
           startTime: eventToEdit.startTime,
           endTime: eventToEdit.endTime || "",
           description: eventToEdit.description || "",
+          url: eventToEdit.url || "",
           type: eventToEdit.type,
         });
       } else {
@@ -77,6 +90,7 @@ export function EventForm({ open, onOpenChange, initialDate, eventToEdit }: Even
           startTime: format(new Date(), "HH:mm"),
           endTime: "",
           description: "",
+          url: "",
           type: "call",
         });
       }
@@ -94,6 +108,7 @@ export function EventForm({ open, onOpenChange, initialDate, eventToEdit }: Even
         startTime: values.startTime,
         endTime: values.endTime || undefined,
         description: values.description,
+        url: values.url || undefined,
         type: values.type,
       });
     } else {
@@ -103,6 +118,7 @@ export function EventForm({ open, onOpenChange, initialDate, eventToEdit }: Even
         startTime: values.startTime,
         endTime: values.endTime || undefined,
         description: values.description,
+        url: values.url || undefined,
         type: values.type,
       });
     }
@@ -225,6 +241,24 @@ export function EventForm({ open, onOpenChange, initialDate, eventToEdit }: Even
               {...form.register("description")} 
               className="resize-none min-h-[100px]"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="url" className="flex items-center gap-2">
+              <LinkIcon className="w-4 h-4" /> Ссылка (необязательно)
+            </Label>
+            <Input 
+              id="url"
+              type="url"
+              placeholder="https://zoom.us/j/..." 
+              {...form.register("url")} 
+            />
+            {form.formState.errors.url && (
+              <p className="text-sm text-destructive">{form.formState.errors.url.message}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Добавьте ссылку на видеозвонок, встречу или другой ресурс
+            </p>
           </div>
 
           <DialogFooter>
