@@ -14,12 +14,14 @@ import ResourceDetailPage from "@/pages/resource-detail";
 import SettingsPage from "@/pages/settings";
 import CalendarPage from "@/pages/calendar";
 import CalendarDayPage from "@/pages/calendar-day";
+import DashboardPage from "@/pages/dashboard";
 
 function Router() {
   return (
     <Layout>
       <Switch>
-        <Route path="/" component={ProjectsPage} />
+        <Route path="/" component={DashboardPage} />
+        <Route path="/dashboard" component={DashboardPage} />
         <Route path="/list" component={ListPage} />
         <Route path="/notes/:id" component={NoteDetailPage} />
         <Route path="/projects" component={ProjectsPage} />
