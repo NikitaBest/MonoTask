@@ -47,7 +47,6 @@ export function ProjectResources({ projectId }: ProjectResourcesProps) {
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
   const [copiedItems, setCopiedItems] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState("");
-  const [selectedType, setSelectedType] = useState<string | null>(null);
 
   const resources = useMemo(() => {
     if (!allResources || !Array.isArray(allResources)) {
@@ -59,19 +58,18 @@ export function ProjectResources({ projectId }: ProjectResourcesProps) {
   }, [allResources, projectId]);
 
   const filteredResources = useMemo(() => {
+    if (!search) return resources;
+    
     return resources.filter((resource) => {
-      const matchesSearch =
+      return (
         resource.title.toLowerCase().includes(search.toLowerCase()) ||
         resource.description?.toLowerCase().includes(search.toLowerCase()) ||
         resource.url?.toLowerCase().includes(search.toLowerCase()) ||
         resource.content?.toLowerCase().includes(search.toLowerCase()) ||
-        resource.username?.toLowerCase().includes(search.toLowerCase());
-      
-      const matchesType = selectedType === null || resource.type === selectedType;
-      
-      return matchesSearch && matchesType;
+        resource.username?.toLowerCase().includes(search.toLowerCase())
+      );
     });
-  }, [resources, search, selectedType]);
+  }, [resources, search]);
 
   const resourcesByType = useMemo(() => {
     const grouped: Record<string, ProjectResource[]> = {
@@ -157,7 +155,7 @@ export function ProjectResources({ projectId }: ProjectResourcesProps) {
         </Button>
       </div>
 
-      {/* Поиск и фильтры */}
+      {/* Поиск */}
       <div className="flex flex-col md:flex-row items-center gap-4">
         <div className="relative flex-1 w-full md:w-auto max-w-md">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -167,28 +165,6 @@ export function ProjectResources({ projectId }: ProjectResourcesProps) {
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
           />
-        </div>
-        
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button
-            variant={selectedType === null ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedType(null)}
-          >
-            Все
-          </Button>
-          {Object.keys(resourceTypeLabels).map((type) => (
-            <Button
-              key={type}
-              variant={selectedType === type ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedType(type)}
-              className="flex items-center gap-1.5"
-            >
-              {resourceTypeIcons[type]}
-              {resourceTypeLabels[type]}
-            </Button>
-          ))}
         </div>
       </div>
 
@@ -268,16 +244,35 @@ export function ProjectResources({ projectId }: ProjectResourcesProps) {
                               </div>
                               
                               {resource.type === 'link' && resource.url && (
-                                <a
-                                  href={resource.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-start gap-2 text-xs text-muted-foreground hover:text-foreground hover:underline break-all group/link"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <LinkIcon className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                                  <span className="break-all">{truncateUrl(resource.url)}</span>
-                                </a>
+                                <div className="flex items-start gap-1.5">
+                                  <a
+                                    href={resource.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-start gap-2 text-xs text-muted-foreground hover:text-foreground hover:underline break-all group/link flex-1 min-w-0"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <LinkIcon className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                                    <span className="break-all">{truncateUrl(resource.url)}</span>
+                                  </a>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-5 w-5 flex-shrink-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      e.preventDefault();
+                                      handleCopyToClipboard(resource.url!, `${resource.id}-url`, "Ссылка");
+                                    }}
+                                    title="Копировать ссылку"
+                                  >
+                                    {copiedItems[`${resource.id}-url`] ? (
+                                      <Check className="w-3 h-3 text-green-600" />
+                                    ) : (
+                                      <Copy className="w-3 h-3" />
+                                    )}
+                                  </Button>
+                                </div>
                               )}
 
                               {resource.type === 'file' && resource.url && (
