@@ -15,6 +15,8 @@ import SettingsPage from "@/pages/settings";
 import CalendarPage from "@/pages/calendar";
 import CalendarDayPage from "@/pages/calendar-day";
 import DashboardPage from "@/pages/dashboard";
+import GoalsPage from "@/pages/goals";
+import GoalDetailPage from "@/pages/goal-detail";
 
 function Router() {
   return (
@@ -29,6 +31,8 @@ function Router() {
         <Route path="/projects/:projectId/resources/:id" component={ResourceDetailPage} />
         <Route path="/calendar" component={CalendarPage} />
         <Route path="/calendar/:date" component={CalendarDayPage} />
+        <Route path="/goals" component={GoalsPage} />
+        <Route path="/goals/:id" component={GoalDetailPage} />
         <Route path="/settings" component={SettingsPage} />
         <Route component={NotFound} />
       </Switch>

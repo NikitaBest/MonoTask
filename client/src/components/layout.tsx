@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { FileText, PieChart, Settings, FolderKanban, Calendar, LayoutDashboard } from "lucide-react";
+import { FileText, PieChart, Settings, FolderKanban, Calendar, LayoutDashboard, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -9,6 +9,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { icon: LayoutDashboard, label: "Дашборд", href: "/" },
     { icon: FolderKanban, label: "Проекты", href: "/projects" },
     { icon: Calendar, label: "Календарь", href: "/calendar" },
+    { icon: Target, label: "Цели", href: "/goals" },
     { icon: FileText, label: "Заметки", href: "/list" },
     { icon: Settings, label: "Настройки", href: "/settings" },
   ];
@@ -27,7 +28,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
             const isActive = location === item.href || 
               (item.href === "/" && (location === "/" || location === "/dashboard")) ||
               (item.href === "/projects" && location?.startsWith("/projects")) ||
-              (item.href === "/calendar" && location?.startsWith("/calendar"));
+              (item.href === "/calendar" && location?.startsWith("/calendar")) ||
+              (item.href === "/goals" && location?.startsWith("/goals"));
             return (
               <Link 
                 key={item.href} 

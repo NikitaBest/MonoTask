@@ -113,6 +113,36 @@ export interface ProjectResource {
   updatedAt: number;
 }
 
+export type GoalPeriod = 'week' | 'month' | 'year';
+export type GoalStatus = 'active' | 'completed' | 'paused' | 'cancelled';
+
+export interface GoalStep {
+  id: string;
+  title: string;
+  description?: string;
+  completed: boolean;
+  completedAt?: number; // timestamp когда был выполнен
+  order: number; // Порядок выполнения
+  createdAt: number;
+}
+
+export interface Goal {
+  id: string;
+  title: string;
+  description?: string;
+  period: GoalPeriod; // Неделя, месяц или год
+  startDate: string; // ISO date string YYYY-MM-DD - начало периода
+  endDate: string; // ISO date string YYYY-MM-DD - конец периода
+  status: GoalStatus;
+  steps: GoalStep[]; // Шаги для выполнения цели
+  progress: number; // Прогресс в процентах (0-100)
+  category?: string; // Категория цели
+  color?: string; // Цвет для визуального отличия
+  createdAt: number;
+  updatedAt: number;
+  completedAt?: number; // timestamp когда цель была выполнена
+}
+
 interface AppState {
   tasks: Task[];
   projects: Project[];
@@ -120,6 +150,7 @@ interface AppState {
   notes: Note[]; // Заметки
   payments: Payment[]; // Оплаты по проектам
   expenses: Expense[]; // Расходы по проектам
+  goals: Goal[]; // Цели и планы
   settings: AppSettings;
   
   // Task Actions
@@ -177,8 +208,21 @@ interface AppState {
   deleteResource: (id: string) => void;
   getResourcesByProject: (projectId: string) => ProjectResource[];
   
-  // Settings
-  updateSettings: (settings: Partial<AppSettings>) => void;
+  // Goals Actions
+  addGoal: (goal: Omit<Goal, 'id' | 'createdAt' | 'updatedAt' | 'progress'>) => void;
+  updateGoal: (id: string, updates: Partial<Goal>) => void;
+  deleteGoal: (id: string) => void;
+  getGoalsByPeriod: (period: GoalPeriod) => Goal[];
+  getGoalsByStatus: (status: GoalStatus) => Goal[];
+  getGoalsByDateRange: (startDate: string, endDate: string) => Goal[];
+  
+  // Goal Steps Actions
+  addGoalStep: (goalId: string, step: Omit<GoalStep, 'id' | 'createdAt' | 'order'>) => void;
+  updateGoalStep: (goalId: string, stepId: string, updates: Partial<GoalStep>) => void;
+  deleteGoalStep: (goalId: string, stepId: string) => void;
+  toggleGoalStep: (goalId: string, stepId: string) => void; // Переключить выполнение шага
+  reorderGoalSteps: (goalId: string, stepIds: string[]) => void; // Изменить порядок шагов
+  calculateGoalProgress: (goalId: string) => number; // Вычислить прогресс цели
 }
 
 export const useStore = create<AppState>()(
@@ -191,6 +235,7 @@ export const useStore = create<AppState>()(
       payments: [],
       expenses: [],
       resources: [],
+      goals: [],
       settings: {
         defaultView: 'day',
         theme: 'system',
@@ -520,6 +565,204 @@ export const useStore = create<AppState>()(
         return get().resources
           .filter((r) => r.projectId === projectId)
           .sort((a, b) => b.updatedAt - a.updatedAt);
+      },
+
+      // Goals Actions
+      addGoal: (goalData) => set((state) => {
+        const now = Date.now();
+        const newGoal: Goal = {
+          ...goalData,
+          id: crypto.randomUUID(),
+          steps: goalData.steps || [],
+          progress: 0,
+          createdAt: now,
+          updatedAt: now,
+        };
+        return {
+          goals: [...state.goals, newGoal]
+        };
+      }),
+
+      updateGoal: (id, updates) => set((state) => {
+        const goal = state.goals.find((g) => g.id === id);
+        if (!goal) return state;
+
+        const updatedGoal = { ...goal, ...updates, updatedAt: Date.now() };
+        
+        // Автоматически вычисляем прогресс при изменении шагов
+        if (updates.steps !== undefined && updatedGoal.steps.length > 0) {
+          const completedSteps = updatedGoal.steps.filter((s) => s.completed).length;
+          updatedGoal.progress = Math.round((completedSteps / updatedGoal.steps.length) * 100);
+        }
+        
+        // Если все шаги выполнены, помечаем цель как выполненную
+        if (updatedGoal.steps.length > 0 && updatedGoal.steps.every(s => s.completed)) {
+          updatedGoal.status = 'completed';
+          updatedGoal.completedAt = Date.now();
+        }
+
+        return {
+          goals: state.goals.map((g) => (g.id === id ? updatedGoal : g))
+        };
+      }),
+
+      deleteGoal: (id) => set((state) => ({
+        goals: state.goals.filter((g) => g.id !== id)
+      })),
+
+      getGoalsByPeriod: (period) => {
+        return get().goals
+          .filter((g) => g.period === period)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      },
+
+      getGoalsByStatus: (status) => {
+        return get().goals
+          .filter((g) => g.status === status)
+          .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      },
+
+      getGoalsByDateRange: (startDate, endDate) => {
+        const start = new Date(startDate).getTime();
+        const end = new Date(endDate).getTime();
+        return get().goals.filter((g) => {
+          const goalStart = new Date(g.startDate).getTime();
+          const goalEnd = new Date(g.endDate).getTime();
+          return (goalStart >= start && goalStart <= end) || 
+                 (goalEnd >= start && goalEnd <= end) ||
+                 (goalStart <= start && goalEnd >= end);
+        }).sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+      },
+
+      // Goal Steps Actions
+      addGoalStep: (goalId, stepData) => set((state) => {
+        const goal = state.goals.find((g) => g.id === goalId);
+        if (!goal) return state;
+
+        const maxOrder = goal.steps.length > 0 
+          ? Math.max(...goal.steps.map(s => s.order))
+          : -1;
+
+        const newStep: GoalStep = {
+          ...stepData,
+          id: crypto.randomUUID(),
+          order: maxOrder + 1,
+          createdAt: Date.now(),
+        };
+
+        const updatedGoal = {
+          ...goal,
+          steps: [...goal.steps, newStep],
+          updatedAt: Date.now(),
+        };
+        // Вычисляем прогресс
+        const completedSteps = updatedGoal.steps.filter((s) => s.completed).length;
+        updatedGoal.progress = updatedGoal.steps.length > 0 
+          ? Math.round((completedSteps / updatedGoal.steps.length) * 100)
+          : 0;
+
+        return {
+          goals: state.goals.map((g) => (g.id === goalId ? updatedGoal : g))
+        };
+      }),
+
+      updateGoalStep: (goalId, stepId, updates) => set((state) => {
+        const goal = state.goals.find((g) => g.id === goalId);
+        if (!goal) return state;
+
+        const updatedGoal = {
+          ...goal,
+          steps: goal.steps.map((s) =>
+            s.id === stepId ? { ...s, ...updates } : s
+          ),
+          updatedAt: Date.now(),
+        };
+        // Вычисляем прогресс
+        const completedSteps = updatedGoal.steps.filter((s) => s.completed).length;
+        updatedGoal.progress = updatedGoal.steps.length > 0 
+          ? Math.round((completedSteps / updatedGoal.steps.length) * 100)
+          : 0;
+
+        // Если все шаги выполнены, помечаем цель как выполненную
+        if (updatedGoal.steps.length > 0 && updatedGoal.steps.every(s => s.completed)) {
+          updatedGoal.status = 'completed';
+          updatedGoal.completedAt = Date.now();
+        }
+
+        return {
+          goals: state.goals.map((g) => (g.id === goalId ? updatedGoal : g))
+        };
+      }),
+
+      deleteGoalStep: (goalId, stepId) => set((state) => {
+        const goal = state.goals.find((g) => g.id === goalId);
+        if (!goal) return state;
+
+        const updatedGoal = {
+          ...goal,
+          steps: goal.steps.filter((s) => s.id !== stepId),
+          updatedAt: Date.now(),
+        };
+        // Вычисляем прогресс
+        const completedSteps = updatedGoal.steps.filter((s) => s.completed).length;
+        updatedGoal.progress = updatedGoal.steps.length > 0 
+          ? Math.round((completedSteps / updatedGoal.steps.length) * 100)
+          : 0;
+
+        return {
+          goals: state.goals.map((g) => (g.id === goalId ? updatedGoal : g))
+        };
+      }),
+
+      toggleGoalStep: (goalId, stepId) => {
+        const goal = get().goals.find((g) => g.id === goalId);
+        if (!goal) return;
+
+        const step = goal.steps.find((s) => s.id === stepId);
+        if (!step) return;
+
+        get().updateGoalStep(goalId, stepId, {
+          completed: !step.completed,
+          completedAt: !step.completed ? Date.now() : undefined,
+        });
+      },
+
+      reorderGoalSteps: (goalId, stepIds) => set((state) => {
+        const goal = state.goals.find((g) => g.id === goalId);
+        if (!goal) return state;
+
+        const stepMap = new Map(goal.steps.map(s => [s.id, s]));
+        const reorderedSteps = stepIds
+          .map((id, index) => {
+            const step = stepMap.get(id);
+            return step ? { ...step, order: index } : null;
+          })
+          .filter((s): s is GoalStep => s !== null);
+
+        // Добавляем шаги, которых нет в новом порядке (на случай ошибки)
+        goal.steps.forEach(step => {
+          if (!stepIds.includes(step.id)) {
+            reorderedSteps.push({ ...step, order: reorderedSteps.length });
+          }
+        });
+
+        const updatedGoal = {
+          ...goal,
+          steps: reorderedSteps,
+          updatedAt: Date.now(),
+        };
+
+        return {
+          goals: state.goals.map((g) => (g.id === goalId ? updatedGoal : g))
+        };
+      }),
+
+      calculateGoalProgress: (goalId) => {
+        const goal = get().goals.find((g) => g.id === goalId);
+        if (!goal || goal.steps.length === 0) return 0;
+
+        const completedSteps = goal.steps.filter((s) => s.completed).length;
+        return Math.round((completedSteps / goal.steps.length) * 100);
       },
 
       // Settings
