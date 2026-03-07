@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { FileText, PieChart, Settings, FolderKanban, Calendar, LayoutDashboard, Target } from "lucide-react";
+import { FileText, Wallet, Settings, FolderKanban, Calendar, LayoutDashboard, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -10,6 +10,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { icon: FolderKanban, label: "Проекты", href: "/projects" },
     { icon: Calendar, label: "Календарь", href: "/calendar" },
     { icon: Target, label: "Цели", href: "/goals" },
+    { icon: Wallet, label: "Финансы", href: "/finance" },
     { icon: FileText, label: "Заметки", href: "/list" },
     { icon: Settings, label: "Настройки", href: "/settings" },
   ];
@@ -25,11 +26,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
         <nav className="flex-1 px-2 space-y-2">
           {navItems.map((item) => {
-            const isActive = location === item.href || 
+            const isActive = location === item.href ||
               (item.href === "/" && (location === "/" || location === "/dashboard")) ||
               (item.href === "/projects" && location?.startsWith("/projects")) ||
               (item.href === "/calendar" && location?.startsWith("/calendar")) ||
-              (item.href === "/goals" && location?.startsWith("/goals"));
+              (item.href === "/goals" && location?.startsWith("/goals")) ||
+              (item.href === "/finance" && location?.startsWith("/finance"));
             return (
               <Link 
                 key={item.href} 

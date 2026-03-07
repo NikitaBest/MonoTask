@@ -143,16 +143,93 @@ export interface Goal {
   completedAt?: number; // timestamp когда цель была выполнена
 }
 
+// ——— Финансовый модуль (личные финансы) ———
+
+export interface FinanceIncome {
+  id: string;
+  amount: number;
+  categoryId: string; // id из INCOME_CATEGORIES
+  date: string; // YYYY-MM-DD
+  comment?: string;
+  source?: string; // источник дохода (необязательно)
+  currency: string;
+  createdAt: number;
+}
+
+export interface FinanceExpense {
+  id: string;
+  amount: number;
+  categoryId: string; // id из EXPENSE_GROUPS.categories
+  date: string; // YYYY-MM-DD
+  comment?: string;
+  paymentMethod: 'card' | 'cash' | 'transfer';
+  currency: string;
+  createdAt: number;
+}
+
+export interface FinanceBudget {
+  id: string;
+  categoryId: string | null; // null = общий бюджет на месяц
+  limitAmount: number;
+  month: string; // YYYY-MM
+  currency: string;
+  createdAt: number;
+}
+
+export interface FinanceGoal {
+  id: string;
+  title: string;
+  targetAmount: number;
+  currentAmount: number;
+  currency: string;
+  deadline?: string; // YYYY-MM-DD
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type RecurringFrequency = 'monthly' | 'weekly' | 'yearly';
+
+export interface RecurringPayment {
+  id: string;
+  title: string;
+  amount: number;
+  categoryId: string;
+  frequency: RecurringFrequency;
+  currency: string;
+  nextDueDate?: string; // YYYY-MM-DD
+  createdAt: number;
+}
+
+/** Ожидаемый доход (должен прийти): кто должен, за что, когда */
+export interface PlannedIncome {
+  id: string;
+  amount: number;
+  expectedDate: string; // YYYY-MM-DD
+  source: string; // от кого / за что (например "Иван — долг", "Зарплата")
+  comment?: string;
+  currency: string;
+  createdAt: number;
+}
+
 interface AppState {
   tasks: Task[];
   projects: Project[];
-  events: CalendarEvent[]; // События/напоминания для календаря
-  notes: Note[]; // Заметки
-  payments: Payment[]; // Оплаты по проектам
-  expenses: Expense[]; // Расходы по проектам
-  goals: Goal[]; // Цели и планы
+  events: CalendarEvent[];
+  notes: Note[];
+  payments: Payment[];
+  expenses: Expense[];
+  resources: ProjectResource[];
+  goals: Goal[];
   settings: AppSettings;
-  
+
+  // Финансовый модуль (личные финансы)
+  financeIncomes: FinanceIncome[];
+  financeExpenses: FinanceExpense[];
+  financeBudgets: FinanceBudget[];
+  financeGoals: FinanceGoal[];
+  recurringPayments: RecurringPayment[];
+  plannedIncomes: PlannedIncome[];
+
   // Task Actions
   addTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
@@ -220,9 +297,52 @@ interface AppState {
   addGoalStep: (goalId: string, step: Omit<GoalStep, 'id' | 'createdAt' | 'order'>) => void;
   updateGoalStep: (goalId: string, stepId: string, updates: Partial<GoalStep>) => void;
   deleteGoalStep: (goalId: string, stepId: string) => void;
-  toggleGoalStep: (goalId: string, stepId: string) => void; // Переключить выполнение шага
-  reorderGoalSteps: (goalId: string, stepIds: string[]) => void; // Изменить порядок шагов
-  calculateGoalProgress: (goalId: string) => number; // Вычислить прогресс цели
+  toggleGoalStep: (goalId: string, stepId: string) => void;
+  reorderGoalSteps: (goalId: string, stepIds: string[]) => void;
+  calculateGoalProgress: (goalId: string) => number;
+
+  // Finance: Incomes
+  addFinanceIncome: (data: Omit<FinanceIncome, 'id' | 'createdAt'>) => void;
+  updateFinanceIncome: (id: string, updates: Partial<FinanceIncome>) => void;
+  deleteFinanceIncome: (id: string) => void;
+  getFinanceIncomesByMonth: (month: string) => FinanceIncome[];
+  getTotalIncomeByMonth: (month: string) => number;
+
+  // Finance: Expenses
+  addFinanceExpense: (data: Omit<FinanceExpense, 'id' | 'createdAt'>) => void;
+  updateFinanceExpense: (id: string, updates: Partial<FinanceExpense>) => void;
+  deleteFinanceExpense: (id: string) => void;
+  getFinanceExpensesByMonth: (month: string) => FinanceExpense[];
+  getTotalExpenseByMonth: (month: string) => number;
+  getExpensesByCategoryForMonth: (month: string) => { categoryId: string; total: number }[];
+
+  // Finance: Budgets
+  addFinanceBudget: (data: Omit<FinanceBudget, 'id' | 'createdAt'>) => void;
+  updateFinanceBudget: (id: string, updates: Partial<FinanceBudget>) => void;
+  deleteFinanceBudget: (id: string) => void;
+  getFinanceBudgetsForMonth: (month: string) => FinanceBudget[];
+  getTotalBudgetLimitForMonth: (month: string) => number;
+  /** Сумма всех запланированных расходов за месяц: общий бюджет или сумма лимитов по категориям */
+  getTotalPlannedSpendingForMonth: (month: string) => number;
+
+  // Finance: Goals (savings)
+  addFinanceGoal: (data: Omit<FinanceGoal, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateFinanceGoal: (id: string, updates: Partial<FinanceGoal>) => void;
+  deleteFinanceGoal: (id: string) => void;
+  getActiveFinanceGoals: () => FinanceGoal[];
+
+  // Finance: Recurring
+  addRecurringPayment: (data: Omit<RecurringPayment, 'id' | 'createdAt'>) => void;
+  updateRecurringPayment: (id: string, updates: Partial<RecurringPayment>) => void;
+  deleteRecurringPayment: (id: string) => void;
+
+  // Finance: Planned incomes (ожидаемые поступления)
+  addPlannedIncome: (data: Omit<PlannedIncome, 'id' | 'createdAt'>) => void;
+  updatePlannedIncome: (id: string, updates: Partial<PlannedIncome>) => void;
+  deletePlannedIncome: (id: string) => void;
+  getTotalPlannedIncome: () => number;
+
+  updateSettings: (newSettings: Partial<AppSettings>) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -236,6 +356,12 @@ export const useStore = create<AppState>()(
       expenses: [],
       resources: [],
       goals: [],
+      financeIncomes: [],
+      financeExpenses: [],
+      financeBudgets: [],
+      financeGoals: [],
+      recurringPayments: [],
+      plannedIncomes: [],
       settings: {
         defaultView: 'day',
         theme: 'system',
@@ -339,6 +465,8 @@ export const useStore = create<AppState>()(
           ),
         };
       }),
+
+      pauseTimer: (_taskId: string) => {}, // заглушка: при необходимости можно реализовать паузу таймера
 
       getTotalTimeForTask: (taskId) => {
         const task = get().tasks.find((t) => t.id === taskId);
@@ -764,6 +892,123 @@ export const useStore = create<AppState>()(
         const completedSteps = goal.steps.filter((s) => s.completed).length;
         return Math.round((completedSteps / goal.steps.length) * 100);
       },
+
+      // Finance: Incomes
+      addFinanceIncome: (data) => set((state) => ({
+        financeIncomes: [...state.financeIncomes, { ...data, id: crypto.randomUUID(), createdAt: Date.now() }]
+      })),
+      updateFinanceIncome: (id, updates) => set((state) => ({
+        financeIncomes: state.financeIncomes.map((i) => (i.id === id ? { ...i, ...updates } : i))
+      })),
+      deleteFinanceIncome: (id) => set((state) => ({
+        financeIncomes: state.financeIncomes.filter((i) => i.id !== id)
+      })),
+      getFinanceIncomesByMonth: (month) => {
+        return get().financeIncomes
+          .filter((i) => i.date.startsWith(month))
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      },
+      getTotalIncomeByMonth: (month) => {
+        return get().financeIncomes
+          .filter((i) => i.date.startsWith(month))
+          .reduce((sum, i) => sum + i.amount, 0);
+      },
+
+      // Finance: Expenses
+      addFinanceExpense: (data) => set((state) => ({
+        financeExpenses: [...state.financeExpenses, { ...data, id: crypto.randomUUID(), createdAt: Date.now() }]
+      })),
+      updateFinanceExpense: (id, updates) => set((state) => ({
+        financeExpenses: state.financeExpenses.map((e) => (e.id === id ? { ...e, ...updates } : e))
+      })),
+      deleteFinanceExpense: (id) => set((state) => ({
+        financeExpenses: state.financeExpenses.filter((e) => e.id !== id)
+      })),
+      getFinanceExpensesByMonth: (month) => {
+        return get().financeExpenses
+          .filter((e) => e.date.startsWith(month))
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      },
+      getTotalExpenseByMonth: (month) => {
+        return get().financeExpenses
+          .filter((e) => e.date.startsWith(month))
+          .reduce((sum, e) => sum + e.amount, 0);
+      },
+      getExpensesByCategoryForMonth: (month) => {
+        const expenses = get().financeExpenses.filter((e) => e.date.startsWith(month));
+        const byCategory: Record<string, number> = {};
+        expenses.forEach((e) => {
+          byCategory[e.categoryId] = (byCategory[e.categoryId] ?? 0) + e.amount;
+        });
+        return Object.entries(byCategory).map(([categoryId, total]) => ({ categoryId, total }));
+      },
+
+      // Finance: Budgets
+      addFinanceBudget: (data) => set((state) => ({
+        financeBudgets: [...state.financeBudgets, { ...data, id: crypto.randomUUID(), createdAt: Date.now() }]
+      })),
+      updateFinanceBudget: (id, updates) => set((state) => ({
+        financeBudgets: state.financeBudgets.map((b) => (b.id === id ? { ...b, ...updates } : b))
+      })),
+      deleteFinanceBudget: (id) => set((state) => ({
+        financeBudgets: state.financeBudgets.filter((b) => b.id !== id)
+      })),
+      getFinanceBudgetsForMonth: (month) => {
+        return get().financeBudgets.filter((b) => b.month === month);
+      },
+      getTotalBudgetLimitForMonth: (month) => {
+        return get().financeBudgets
+          .filter((b) => b.month === month && b.categoryId === null)
+          .reduce((sum, b) => sum + b.limitAmount, 0);
+      },
+
+      getTotalPlannedSpendingForMonth: (month) => {
+        const budgets = get().financeBudgets.filter((b) => b.month === month);
+        const general = budgets.find((b) => b.categoryId === null);
+        if (general) return general.limitAmount;
+        return budgets.reduce((sum, b) => sum + b.limitAmount, 0);
+      },
+
+      // Finance: Goals (savings)
+      addFinanceGoal: (data) => set((state) => {
+        const now = Date.now();
+        return {
+          financeGoals: [...state.financeGoals, { ...data, id: crypto.randomUUID(), createdAt: now, updatedAt: now }]
+        };
+      }),
+      updateFinanceGoal: (id, updates) => set((state) => ({
+        financeGoals: state.financeGoals.map((g) =>
+          g.id === id ? { ...g, ...updates, updatedAt: Date.now() } : g
+        )
+      })),
+      deleteFinanceGoal: (id) => set((state) => ({
+        financeGoals: state.financeGoals.filter((g) => g.id !== id)
+      })),
+      getActiveFinanceGoals: () => {
+        return get().financeGoals.filter((g) => g.currentAmount < g.targetAmount);
+      },
+
+      // Finance: Recurring
+      addRecurringPayment: (data) => set((state) => ({
+        recurringPayments: [...state.recurringPayments, { ...data, id: crypto.randomUUID(), createdAt: Date.now() }]
+      })),
+      updateRecurringPayment: (id, updates) => set((state) => ({
+        recurringPayments: state.recurringPayments.map((r) => (r.id === id ? { ...r, ...updates } : r))
+      })),
+      deleteRecurringPayment: (id) => set((state) => ({
+        recurringPayments: state.recurringPayments.filter((r) => r.id !== id)
+      })),
+
+      addPlannedIncome: (data) => set((state) => ({
+        plannedIncomes: [...state.plannedIncomes, { ...data, id: crypto.randomUUID(), createdAt: Date.now() }]
+      })),
+      updatePlannedIncome: (id, updates) => set((state) => ({
+        plannedIncomes: state.plannedIncomes.map((p) => (p.id === id ? { ...p, ...updates } : p))
+      })),
+      deletePlannedIncome: (id) => set((state) => ({
+        plannedIncomes: state.plannedIncomes.filter((p) => p.id !== id)
+      })),
+      getTotalPlannedIncome: () => get().plannedIncomes.reduce((sum, p) => sum + p.amount, 0),
 
       // Settings
       updateSettings: (newSettings) => set((state) => ({

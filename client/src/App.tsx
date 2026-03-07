@@ -17,6 +17,14 @@ import CalendarDayPage from "@/pages/calendar-day";
 import DashboardPage from "@/pages/dashboard";
 import GoalsPage from "@/pages/goals";
 import GoalDetailPage from "@/pages/goal-detail";
+import { FinanceLayout } from "@/components/finance-layout";
+import FinanceDashboardPage from "@/pages/finance/finance-dashboard";
+import FinanceIncomesPage from "@/pages/finance/finance-incomes";
+import FinanceExpensesPage from "@/pages/finance/finance-expenses";
+import FinanceCategoriesPage from "@/pages/finance/finance-categories";
+import FinanceBudgetsPage from "@/pages/finance/finance-budgets";
+import FinanceGoalsPage from "@/pages/finance/finance-goals";
+import FinanceAnalyticsPage from "@/pages/finance/finance-analytics";
 
 function Router() {
   return (
@@ -33,6 +41,13 @@ function Router() {
         <Route path="/calendar/:date" component={CalendarDayPage} />
         <Route path="/goals" component={GoalsPage} />
         <Route path="/goals/:id" component={GoalDetailPage} />
+        <Route path="/finance" component={() => <FinanceLayout><FinanceDashboardPage /></FinanceLayout>} />
+        <Route path="/finance/incomes" component={() => <FinanceLayout><FinanceIncomesPage /></FinanceLayout>} />
+        <Route path="/finance/expenses" component={() => <FinanceLayout><FinanceExpensesPage /></FinanceLayout>} />
+        <Route path="/finance/categories" component={() => <FinanceLayout><FinanceCategoriesPage /></FinanceLayout>} />
+        <Route path="/finance/budgets" component={() => <FinanceLayout><FinanceBudgetsPage /></FinanceLayout>} />
+        <Route path="/finance/goals" component={() => <FinanceLayout><FinanceGoalsPage /></FinanceLayout>} />
+        <Route path="/finance/analytics" component={() => <FinanceLayout><FinanceAnalyticsPage /></FinanceLayout>} />
         <Route path="/settings" component={SettingsPage} />
         <Route component={NotFound} />
       </Switch>
