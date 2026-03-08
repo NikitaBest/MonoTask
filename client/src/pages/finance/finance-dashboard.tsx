@@ -45,6 +45,15 @@ export default function FinanceDashboardPage() {
   const expectedEnoughForPlan =
     totalPlannedSpending > 0 && totalIncome + totalExpectedIncome >= totalPlannedSpending;
   const activeGoals = financeGoals.filter((g) => g.currentAmount < g.targetAmount);
+  /** Сколько ещё нужно накопить до всех целей (сумма недобора по активным целям) */
+  const remainingToGoals = activeGoals.reduce(
+    (sum, g) => sum + Math.max(0, g.targetAmount - g.currentAmount),
+    0
+  );
+  /** Доступно = текущий баланс + ожидаемые поступления */
+  const availableTotal = balanceWithExpected;
+  /** Разница: сколько останется после отложения на цели, или сколько не хватает */
+  const diffAfterGoals = availableTotal - remainingToGoals;
 
   const lastTransactions = useMemo(() => {
     const incomes = getFinanceIncomesByMonth(month).map((i) => ({
@@ -149,7 +158,51 @@ export default function FinanceDashboardPage() {
           <PlannedIncomeBlock />
         </div>
         <div className="space-y-4">
-          {totalExpectedIncome > 0 && (
+          {/* Баланс и цели: доступно, заложено на цели, разница */}
+          {(activeGoals.length > 0 || totalExpectedIncome > 0) && (
+            <Card className="border-primary/20 bg-muted/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Wallet className="h-4 w-4" />
+                  Баланс и цели
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Чтобы не превышать лимит: сколько доступно, сколько заложено на цели, какая разница.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Доступно сейчас</p>
+                  <p className={`text-lg font-bold ${availableTotal >= 0 ? "text-green-600" : "text-red-600"}`}>
+                    {availableTotal.toLocaleString("ru-RU")} {DEFAULT_CURRENCY}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Текущий баланс + ожидаемые поступления</p>
+                </div>
+                {activeGoals.length > 0 && (
+                  <>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Ещё нужно до целей (заложено накопить)</p>
+                      <p className="text-lg font-semibold">
+                        {remainingToGoals.toLocaleString("ru-RU")} {DEFAULT_CURRENCY}
+                      </p>
+                    </div>
+                    <div className={`rounded-lg p-3 ${diffAfterGoals >= 0 ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-destructive/10 text-destructive"}`}>
+                      {diffAfterGoals >= 0 ? (
+                        <p className="text-sm font-medium">
+                          После отложения на цели останется: {diffAfterGoals.toLocaleString("ru-RU")} {DEFAULT_CURRENCY}
+                        </p>
+                      ) : (
+                        <p className="text-sm font-medium">
+                          На цели не хватает: {Math.abs(diffAfterGoals).toLocaleString("ru-RU")} {DEFAULT_CURRENCY}. Не превышайте текущий баланс — отложите меньше или дождитесь поступлений.
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
+          {totalExpectedIncome > 0 && !activeGoals.length && (
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -183,6 +236,7 @@ export default function FinanceDashboardPage() {
                 <ul className="space-y-2">
                   {activeGoals.slice(0, 3).map((g) => {
                     const pct = g.targetAmount > 0 ? Math.min(100, Math.round((g.currentAmount / g.targetAmount) * 100)) : 0;
+                    const need = Math.max(0, g.targetAmount - g.currentAmount);
                     return (
                       <li key={g.id} className="text-sm">
                         <div className="flex justify-between">
@@ -191,6 +245,7 @@ export default function FinanceDashboardPage() {
                             {g.currentAmount.toLocaleString("ru-RU")} / {g.targetAmount.toLocaleString("ru-RU")} {DEFAULT_CURRENCY}
                           </span>
                         </div>
+                        <p className="text-xs text-muted-foreground">ещё нужно: {need.toLocaleString("ru-RU")} {DEFAULT_CURRENCY}</p>
                         <Progress value={pct} className="h-1.5 mt-1" />
                       </li>
                     );
