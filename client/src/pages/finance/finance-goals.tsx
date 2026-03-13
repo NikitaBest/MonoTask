@@ -3,6 +3,7 @@ import { useStore, FinanceGoal } from "@/lib/store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { FinanceGoalForm } from "@/components/finance/finance-goal-form";
 import { Progress } from "@/components/ui/progress";
 import { DEFAULT_CURRENCY } from "@/lib/finance-categories";
@@ -46,7 +47,7 @@ export default function FinanceGoalsPage() {
         <CardHeader>
           <CardTitle>Накопления</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Отслеживайте прогресс по целям: подушка безопасности, отпуск, крупные покупки.
+            Отслеживайте прогресс по целям. Приоритет высокий и средний участвуют в блоке «Баланс и цели» на главной, низкий — только отображаются.
           </p>
         </CardHeader>
         <CardContent>
@@ -59,14 +60,28 @@ export default function FinanceGoalsPage() {
               {financeGoals.map((g) => {
                 const progress = g.targetAmount > 0 ? Math.min(100, Math.round((g.currentAmount / g.targetAmount) * 100)) : 0;
                 const isCompleted = g.currentAmount >= g.targetAmount;
+                const priority = g.priority ?? "medium";
+                const priorityLabel = { high: "Высокий", medium: "Средний", low: "Низкий" }[priority];
+                const priorityBadgeClass = {
+                  high: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/40",
+                  medium: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40",
+                  low: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/40",
+                }[priority];
+                const priorityBorderClass = { high: "border-l-red-500", medium: "border-l-amber-500", low: "border-l-green-500" }[priority];
 
                 return (
                   <div
                     key={g.id}
-                    className={`p-4 rounded-lg border ${isCompleted ? "border-green-500/50 bg-green-500/5" : "border-border"}`}
+                    className={`p-4 rounded-lg border border-border border-l-4 ${priorityBorderClass} ${isCompleted ? "bg-green-500/5" : ""}`}
                   >
                     <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-medium">{g.title}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${priority === "high" ? "bg-red-500" : priority === "medium" ? "bg-amber-500" : "bg-green-500"}`} aria-hidden />
+                        <h3 className="font-medium">{g.title}</h3>
+                        <Badge variant="outline" className={`text-xs border ${priorityBadgeClass}`}>
+                          {priorityLabel}
+                        </Badge>
+                      </div>
                       <div className="flex gap-2">
                         <Button variant="ghost" size="icon" onClick={() => { setEditingGoal(g); setIsFormOpen(true); }}>
                           <Pencil className="h-4 w-4" />

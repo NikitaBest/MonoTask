@@ -9,7 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStore, FinanceGoal } from "@/lib/store";
+import type { FinanceGoalPriority } from "@/lib/store";
 import { DEFAULT_CURRENCY } from "@/lib/finance-categories";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,6 +20,7 @@ const schema = z.object({
   title: z.string().min(1, "Укажите название цели"),
   targetAmount: z.string().refine((v) => !isNaN(Number(v)) && Number(v) > 0, "Сумма больше 0"),
   currentAmount: z.string().refine((v) => !isNaN(Number(v)) && Number(v) >= 0, "Сумма ≥ 0"),
+  priority: z.enum(["high", "medium", "low"]),
   deadline: z.date().optional(),
 });
 
@@ -39,6 +42,7 @@ export function FinanceGoalForm({ open, onOpenChange, goalToEdit }: FinanceGoalF
       title: "",
       targetAmount: "",
       currentAmount: "0",
+      priority: "medium" as const,
       deadline: undefined,
     },
   });
@@ -49,6 +53,7 @@ export function FinanceGoalForm({ open, onOpenChange, goalToEdit }: FinanceGoalF
         title: goalToEdit?.title ?? "",
         targetAmount: goalToEdit ? String(goalToEdit.targetAmount) : "",
         currentAmount: goalToEdit ? String(goalToEdit.currentAmount) : "0",
+        priority: (goalToEdit?.priority ?? "medium") as "high" | "medium" | "low",
         deadline: goalToEdit?.deadline ? new Date(goalToEdit.deadline) : undefined,
       });
     }
@@ -58,12 +63,14 @@ export function FinanceGoalForm({ open, onOpenChange, goalToEdit }: FinanceGoalF
     const targetAmount = Number(values.targetAmount);
     const currentAmount = Number(values.currentAmount);
     const deadline = values.deadline ? format(values.deadline, "yyyy-MM-dd") : undefined;
+    const priority = values.priority as FinanceGoalPriority;
 
     if (goalToEdit) {
       updateFinanceGoal(goalToEdit.id, {
         title: values.title,
         targetAmount,
         currentAmount,
+        priority,
         deadline,
       });
     } else {
@@ -72,6 +79,7 @@ export function FinanceGoalForm({ open, onOpenChange, goalToEdit }: FinanceGoalF
         targetAmount,
         currentAmount,
         currency: DEFAULT_CURRENCY,
+        priority,
         deadline,
       });
     }
@@ -105,6 +113,28 @@ export function FinanceGoalForm({ open, onOpenChange, goalToEdit }: FinanceGoalF
             {form.formState.errors.currentAmount && (
               <p className="text-sm text-destructive">{form.formState.errors.currentAmount.message}</p>
             )}
+          </div>
+          <div className="space-y-2">
+            <Label>Приоритет</Label>
+            <Select
+              value={form.watch("priority")}
+              onValueChange={(v: "high" | "medium" | "low") => form.setValue("priority", v)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="high">
+                  <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" /> Высокий — участвует в блоке «Баланс и цели»</span>
+                </SelectItem>
+                <SelectItem value="medium">
+                  <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" /> Средний — участвует в блоке «Баланс и цели»</span>
+                </SelectItem>
+                <SelectItem value="low">
+                  <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-green-500 shrink-0" /> Низкий — только отображается, в расчёт не входит</span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label>Срок (необязательно)</Label>

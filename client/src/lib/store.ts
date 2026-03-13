@@ -176,6 +176,8 @@ export interface FinanceBudget {
   createdAt: number;
 }
 
+export type FinanceGoalPriority = 'high' | 'medium' | 'low';
+
 export interface FinanceGoal {
   id: string;
   title: string;
@@ -183,6 +185,8 @@ export interface FinanceGoal {
   currentAmount: number;
   currency: string;
   deadline?: string; // YYYY-MM-DD
+  /** Высокий и средний участвуют в блоке «Баланс и цели», низкий — только отображается */
+  priority?: FinanceGoalPriority;
   createdAt: number;
   updatedAt: number;
 }
@@ -229,6 +233,8 @@ interface AppState {
   financeGoals: FinanceGoal[];
   recurringPayments: RecurringPayment[];
   plannedIncomes: PlannedIncome[];
+  /** Подушка безопасности: сумма (сколько отложено) */
+  safetyCushionAmount: number;
 
   // Task Actions
   addTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
@@ -342,6 +348,8 @@ interface AppState {
   deletePlannedIncome: (id: string) => void;
   getTotalPlannedIncome: () => number;
 
+  setSafetyCushionAmount: (amount: number) => void;
+
   updateSettings: (newSettings: Partial<AppSettings>) => void;
 }
 
@@ -362,6 +370,7 @@ export const useStore = create<AppState>()(
       financeGoals: [],
       recurringPayments: [],
       plannedIncomes: [],
+      safetyCushionAmount: 0,
       settings: {
         defaultView: 'day',
         theme: 'system',
@@ -973,7 +982,7 @@ export const useStore = create<AppState>()(
       addFinanceGoal: (data) => set((state) => {
         const now = Date.now();
         return {
-          financeGoals: [...state.financeGoals, { ...data, id: crypto.randomUUID(), createdAt: now, updatedAt: now }]
+          financeGoals: [...state.financeGoals, { ...data, priority: data.priority ?? 'medium', id: crypto.randomUUID(), createdAt: now, updatedAt: now }]
         };
       }),
       updateFinanceGoal: (id, updates) => set((state) => ({
@@ -1009,6 +1018,8 @@ export const useStore = create<AppState>()(
         plannedIncomes: state.plannedIncomes.filter((p) => p.id !== id)
       })),
       getTotalPlannedIncome: () => get().plannedIncomes.reduce((sum, p) => sum + p.amount, 0),
+
+      setSafetyCushionAmount: (amount) => set({ safetyCushionAmount: Math.max(0, amount) }),
 
       // Settings
       updateSettings: (newSettings) => set((state) => ({

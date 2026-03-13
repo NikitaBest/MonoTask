@@ -149,4 +149,4 @@ export const PAYMENT_METHODS = [
 
 export type PaymentMethodId = (typeof PAYMENT_METHODS)[number]["id"];
 
-export const DEFAULT_CURRENCY = "€";
+export const DEFAULT_CURRENCY = "₽";

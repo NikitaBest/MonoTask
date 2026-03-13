@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "wouter";
@@ -12,7 +12,11 @@ import { Progress } from "@/components/ui/progress";
 import { DEFAULT_CURRENCY } from "@/lib/finance-categories";
 import { QuickAddBlock } from "@/components/finance/quick-add-block";
 import { PlannedIncomeBlock } from "@/components/finance/planned-income-block";
-import { Target } from "lucide-react";
+import { Target, Shield, Save } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { FinanceGoalPriority } from "@/lib/store";
 
 /** Яркая палитра для круговой диаграммы расходов по категориям */
 const PIE_COLORS = [
@@ -31,6 +35,17 @@ export default function FinanceDashboardPage() {
   const getTotalPlannedSpendingForMonth = useStore((s) => s.getTotalPlannedSpendingForMonth);
   const getTotalPlannedIncome = useStore((s) => s.getTotalPlannedIncome);
   const financeGoals = useStore((s) => s.financeGoals);
+  const updateFinanceGoal = useStore((s) => s.updateFinanceGoal);
+  const safetyCushionAmount = useStore((s) => s.safetyCushionAmount);
+  const setSafetyCushionAmount = useStore((s) => s.setSafetyCushionAmount);
+
+  const [safetyCushionInput, setSafetyCushionInput] = useState("");
+  const safetyCushionNum = Number(safetyCushionInput.replace(",", "."));
+  const canSaveCushion =
+    safetyCushionInput !== "" &&
+    !Number.isNaN(safetyCushionNum) &&
+    safetyCushionNum >= 0 &&
+    safetyCushionNum !== safetyCushionAmount;
 
   const month = format(new Date(), "yyyy-MM");
 
@@ -45,8 +60,12 @@ export default function FinanceDashboardPage() {
   const expectedEnoughForPlan =
     totalPlannedSpending > 0 && totalIncome + totalExpectedIncome >= totalPlannedSpending;
   const activeGoals = financeGoals.filter((g) => g.currentAmount < g.targetAmount);
-  /** Сколько ещё нужно накопить до всех целей (сумма недобора по активным целям) */
-  const remainingToGoals = activeGoals.reduce(
+  /** Цели, которые участвуют в расчёте «Баланс и цели»: высокий и средний приоритет */
+  const goalsCountedInBalance = activeGoals.filter(
+    (g) => (g.priority ?? "medium") !== "low"
+  );
+  /** Сколько ещё нужно накопить до целей высокого и среднего приоритета */
+  const remainingToGoals = goalsCountedInBalance.reduce(
     (sum, g) => sum + Math.max(0, g.targetAmount - g.currentAmount),
     0
   );
@@ -99,6 +118,58 @@ export default function FinanceDashboardPage() {
     };
   }, [month, getFinanceBudgetsForMonth, totalExpense]);
 
+  const priorityStyles = {
+    high: "border-l-red-500 bg-red-500/5",
+    medium: "border-l-amber-500 bg-amber-500/5",
+    low: "border-l-green-500 bg-green-500/5",
+  };
+  const selectStyles = {
+    high: "border-red-500/50 bg-red-500/10 text-red-700 dark:text-red-400 focus:ring-red-500/20",
+    medium: "border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400 focus:ring-amber-500/20",
+    low: "border-green-500/50 bg-green-500/10 text-green-700 dark:text-green-400 focus:ring-green-500/20",
+  };
+
+  function renderGoalItem(g: (typeof activeGoals)[0]) {
+    const pct = g.targetAmount > 0 ? Math.min(100, Math.round((g.currentAmount / g.targetAmount) * 100)) : 0;
+    const need = Math.max(0, g.targetAmount - g.currentAmount);
+    const priority = g.priority ?? "medium";
+    return (
+      <div key={g.id} className={`text-sm p-3 rounded-lg border border-border border-l-4 ${priorityStyles[priority]}`}>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+          <span className="font-medium truncate flex items-center gap-2">
+            <span className={`w-2 h-2 rounded-full shrink-0 ${priority === "high" ? "bg-red-500" : priority === "medium" ? "bg-amber-500" : "bg-green-500"}`} aria-hidden />
+            {g.title}
+          </span>
+          <Select
+            value={priority}
+            onValueChange={(v: FinanceGoalPriority) => updateFinanceGoal(g.id, { priority: v })}
+          >
+            <SelectTrigger className={`w-[130px] h-8 text-xs ${selectStyles[priority]}`}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="high"><span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500" /> Высокий</span></SelectItem>
+              <SelectItem value="medium"><span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500" /> Средний</span></SelectItem>
+              <SelectItem value="low"><span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-green-500" /> Низкий</span></SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex justify-between text-xs text-muted-foreground mb-1">
+          <span>
+            {priority === "high" && "Участвует в расчёте"}
+            {priority === "medium" && "Участвует в расчёте"}
+            {priority === "low" && "Не в расчёте «Баланс и цели»"}
+          </span>
+          <span>
+            {g.currentAmount.toLocaleString("ru-RU")} / {g.targetAmount.toLocaleString("ru-RU")} {DEFAULT_CURRENCY}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground mb-1">ещё нужно: {need.toLocaleString("ru-RU")} {DEFAULT_CURRENCY}</p>
+        <Progress value={pct} className="h-1.5" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -149,6 +220,55 @@ export default function FinanceDashboardPage() {
         </Card>
       </div>
 
+      {/* Подушка безопасности */}
+      <Card className="border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-950/20">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+            <Shield className="h-4 w-4" />
+            Подушка безопасности
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Сумма, которую вы отложили на непредвиденные расходы. Вносите и обновляйте по мере накопления.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-end gap-2">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Текущая сумма</p>
+              <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">
+                {safetyCushionAmount.toLocaleString("ru-RU")} {DEFAULT_CURRENCY}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-end gap-2 ml-auto">
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Ввести или изменить сумму</label>
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder={String(safetyCushionAmount) || "0"}
+                  value={safetyCushionInput}
+                  onChange={(e) => setSafetyCushionInput(e.target.value)}
+                  className="w-32"
+                />
+              </div>
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (canSaveCushion) {
+                    setSafetyCushionAmount(safetyCushionNum);
+                    setSafetyCushionInput("");
+                  }
+                }}
+                disabled={!canSaveCushion}
+              >
+                <Save className="h-4 w-4 mr-1" />
+                Сохранить
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Быстрый ввод доходов и расходов прямо на главной */}
       <QuickAddBlock />
 
@@ -178,10 +298,10 @@ export default function FinanceDashboardPage() {
                   </p>
                   <p className="text-xs text-muted-foreground">Текущий баланс + ожидаемые поступления</p>
                 </div>
-                {activeGoals.length > 0 && (
+                {(activeGoals.length > 0 || totalExpectedIncome > 0) && goalsCountedInBalance.length > 0 && (
                   <>
                     <div>
-                      <p className="text-xs text-muted-foreground">Ещё нужно до целей (заложено накопить)</p>
+                      <p className="text-xs text-muted-foreground">Ещё нужно до целей с высоким и средним приоритетом</p>
                       <p className="text-lg font-semibold">
                         {remainingToGoals.toLocaleString("ru-RU")} {DEFAULT_CURRENCY}
                       </p>
@@ -198,6 +318,11 @@ export default function FinanceDashboardPage() {
                       )}
                     </div>
                   </>
+                )}
+                {activeGoals.length > 0 && goalsCountedInBalance.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Все цели имеют низкий приоритет — в расчёт баланса не входят. Поставьте высокий или средний приоритет в блоке «Цели» ниже.
+                  </p>
                 )}
               </CardContent>
             </Card>
@@ -219,46 +344,67 @@ export default function FinanceDashboardPage() {
               </CardContent>
             </Card>
           )}
-          {activeGoals.length > 0 && (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Target className="h-4 w-4" />
-                  Цели (куда отложить)
-                </CardTitle>
-                <Link href="/finance/goals">
-                  <span className="text-xs text-muted-foreground hover:text-foreground cursor-pointer">
-                    Все
-                  </span>
-                </Link>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {activeGoals.slice(0, 3).map((g) => {
-                    const pct = g.targetAmount > 0 ? Math.min(100, Math.round((g.currentAmount / g.targetAmount) * 100)) : 0;
-                    const need = Math.max(0, g.targetAmount - g.currentAmount);
-                    return (
-                      <li key={g.id} className="text-sm">
-                        <div className="flex justify-between">
-                          <span className="font-medium truncate">{g.title}</span>
-                          <span className="text-muted-foreground shrink-0 ml-2">
-                            {g.currentAmount.toLocaleString("ru-RU")} / {g.targetAmount.toLocaleString("ru-RU")} {DEFAULT_CURRENCY}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">ещё нужно: {need.toLocaleString("ru-RU")} {DEFAULT_CURRENCY}</p>
-                        <Progress value={pct} className="h-1.5 mt-1" />
-                      </li>
-                    );
-                  })}
-                </ul>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Цели накоплений — видно, сколько уже отложено и сколько осталось.
-                </p>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
+
+      {/* Цели — ниже блоков «Ожидаемые поступления» и «Баланс и цели»; слева низкие, по центру средние, справа высокие */}
+      {activeGoals.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Target className="h-4 w-4" />
+              Цели (куда отложить)
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Приоритет: <strong>высокий</strong> и <strong>средний</strong> — участвуют в блоке «Баланс и цели»; <strong>низкий</strong> — только отображаются. Расположение: слева — низкий, по центру — средний, справа — высокий. Цвета: <span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-500" /> низкий</span>, <span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> средний</span>, <span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> высокий</span>.
+            </p>
+            <Link href="/finance/goals" className="text-xs text-muted-foreground hover:text-foreground mt-1 inline-block">
+              Все цели →
+            </Link>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Слева — низкий приоритет */}
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-2">
+                  <span className="w-2 h-2 rounded-full bg-green-500" /> Низкий (не в расчёте)
+                </p>
+                {activeGoals
+                  .filter((g) => (g.priority ?? "medium") === "low")
+                  .slice(0, 5)
+                  .map((g) => renderGoalItem(g))}
+              </div>
+              {/* По центру — средний приоритет */}
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-500" /> Средний (в расчёте)
+                </p>
+                {activeGoals
+                  .filter((g) => (g.priority ?? "medium") === "medium")
+                  .slice(0, 5)
+                  .map((g) => renderGoalItem(g))}
+              </div>
+              {/* Справа — высокий приоритет */}
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-2">
+                  <span className="w-2 h-2 rounded-full bg-red-500" /> Высокий (в расчёте)
+                </p>
+                {activeGoals
+                  .filter((g) => (g.priority ?? "medium") === "high")
+                  .slice(0, 5)
+                  .map((g) => renderGoalItem(g))}
+              </div>
+            </div>
+            {activeGoals.length > 15 && (
+              <Link href="/finance/goals">
+                <span className="text-xs text-muted-foreground hover:text-foreground mt-3 inline-block">
+                  Ещё целей на странице «Все цели» →
+                </span>
+              </Link>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* По запланированным лимитам: вхожу / не вхожу, сколько можно отложить */}
       {totalPlannedSpending > 0 && (
